@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/reverted/ex"
@@ -39,12 +40,27 @@ func WithMysql(uri string) opt {
 
 func WithMysqlConn(uri string) opt {
 	return func(self *executor) {
-		conn, err := sql.Open("mysql", uri)
-		if err != nil {
-			self.Logger.Fatal(err)
+
+		var (
+			err  error
+			conn *sql.DB
+		)
+
+		for _, interval := range []int{0, 1, 2, 5} {
+			time.Sleep(time.Duration(interval) * time.Second)
+
+			if conn, err = sql.Open("mysql", uri); err != nil {
+				continue
+			}
+
+			if err := conn.Ping(); err != nil {
+				continue
+			}
+
+			break
 		}
 
-		if err := conn.Ping(); err != nil {
+		if err != nil {
 			self.Logger.Fatal(err)
 		}
 
