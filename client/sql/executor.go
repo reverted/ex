@@ -27,7 +27,7 @@ type opt func(*executor)
 
 func FromEnv() opt {
 	return func(self *executor) {
-		WithMysql(os.Getenv("ELAPSE_MYSQL_URL"))(self)
+		WithMysql(os.Getenv("REVERTED_MYSQL_URL"))(self)
 	}
 }
 

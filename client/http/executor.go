@@ -24,15 +24,15 @@ func FromEnv() opt {
 	return func(self *executor) {
 
 		config := clientcredentials.Config{
-			ClientID:     os.Getenv("ELAPSE_API_CLIENT_ID"),
-			ClientSecret: os.Getenv("ELAPSE_API_CLIENT_SECRET"),
-			TokenURL:     os.Getenv("ELAPSE_API_TOKEN_URL"),
-			Scopes:       strings.Split(os.Getenv("ELAPSE_API_SCOPE"), ","),
+			ClientID:     os.Getenv("REVERTED_API_CLIENT_ID"),
+			ClientSecret: os.Getenv("REVERTED_API_CLIENT_SECRET"),
+			TokenURL:     os.Getenv("REVERTED_API_TOKEN_URL"),
+			Scopes:       strings.Split(os.Getenv("REVERTED_API_SCOPE"), ","),
 		}
 
 		client := config.Client(context.Background())
 
-		url, err := url.Parse(os.Getenv("ELAPSE_API_URL"))
+		url, err := url.Parse(os.Getenv("REVERTED_API_URL"))
 		if err != nil {
 			self.Logger.Fatal(err)
 		}
