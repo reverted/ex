@@ -6,26 +6,22 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 
 	"github.com/reverted/ex"
 )
 
-func NewParser(logger Logger) *parser {
-	return &parser{logger}
+func NewParser() *parser {
+	return &parser{}
 }
 
-type parser struct {
-	Logger
-}
+type parser struct{}
 
 func (self *parser) Parse(r *http.Request) (ex.Request, error) {
 
-	resource, err := Resource(r.Context())
-	if err != nil {
-		return ex.Command{}, err
-	}
+	resource := self.ParseResource(r)
 
 	if resource == ":batch" {
 		return self.ParseBatch(r)
@@ -37,19 +33,20 @@ func (self *parser) Parse(r *http.Request) (ex.Request, error) {
 
 func (self *parser) ParseBatch(r *http.Request) (ex.Batch, error) {
 
+	var batch ex.Batch
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return ex.Batch{}, err
+		return batch, err
 	}
 
 	var cmds []ex.Command
 	if err = json.Unmarshal(body, &cmds); err != nil {
-		return ex.Batch{}, err
+		return batch, err
 	}
 
-	var batch ex.Batch
 	for _, c := range cmds {
-		batch = append(batch, c)
+		batch.Requests = append(batch.Requests, c)
 	}
 
 	return batch, nil
@@ -57,10 +54,7 @@ func (self *parser) ParseBatch(r *http.Request) (ex.Batch, error) {
 
 func (self *parser) ParseCommand(r *http.Request) (ex.Command, error) {
 
-	resource, err := Resource(r.Context())
-	if err != nil {
-		return ex.Command{}, err
-	}
+	resource := self.ParseResource(r)
 
 	where, err := self.ParseWhere(r)
 	if err != nil {
@@ -115,8 +109,12 @@ func (self *parser) ParseValues(r *http.Request) (ex.Values, error) {
 
 	var values ex.Values
 	err := json.NewDecoder(r.Body).Decode(&values)
-	if err != nil && err != io.EOF {
-		return values, err
+	if err != nil {
+		if err == io.EOF {
+			return ex.Values{}, nil
+		} else {
+			return ex.Values{}, err
+		}
 	}
 
 	return values, nil
@@ -178,4 +176,8 @@ func (self *parser) ParseWhere(r *http.Request) (ex.Where, error) {
 	}
 
 	return where, nil
+}
+
+func (self *parser) ParseResource(r *http.Request) string {
+	return path.Base(r.URL.Path)
 }

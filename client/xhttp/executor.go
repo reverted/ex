@@ -1,4 +1,4 @@
-package http
+package xhttp
 
 import (
 	"context"
@@ -14,8 +14,17 @@ import (
 	"github.com/reverted/ex"
 )
 
+type Logger interface {
+	Fatal(a ...interface{})
+	Infof(format string, a ...interface{})
+}
+
 type Formatter interface {
 	Format(ex.Request) (*http.Request, error)
+}
+
+type Client interface {
+	Do(*http.Request) (*http.Response, error)
 }
 
 type opt func(*executor)
@@ -41,10 +50,16 @@ func FromEnv() opt {
 	}
 }
 
-func With(client *http.Client, target *url.URL) opt {
+func With(client Client, target *url.URL) opt {
 	return func(self *executor) {
 		WithFormatter(NewFormatter(target))(self)
 		WithClient(client)(self)
+	}
+}
+
+func WithTarget(target *url.URL) opt {
+	return func(self *executor) {
+		WithFormatter(NewFormatter(target))(self)
 	}
 }
 
@@ -54,7 +69,7 @@ func WithFormatter(formatter Formatter) opt {
 	}
 }
 
-func WithClient(client *http.Client) opt {
+func WithClient(client Client) opt {
 	return func(self *executor) {
 		self.Client = client
 	}
@@ -87,7 +102,7 @@ func NewExecutor(logger Logger, opts ...opt) *executor {
 type executor struct {
 	Logger
 	Formatter
-	*http.Client
+	Client
 }
 
 func (self *executor) Close() error {

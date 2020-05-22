@@ -1,6 +1,7 @@
-package sql
+package xsql
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -13,84 +14,120 @@ func NewMysqlFormatter() *mysqlFormatter {
 
 type mysqlFormatter struct{}
 
-func (self *mysqlFormatter) FormatQuery(req ex.Command) ex.Statement {
+func (self *mysqlFormatter) Format(cmd ex.Command) (ex.Statement, error) {
+	switch strings.ToUpper(cmd.Action) {
+	case "QUERY":
+		return self.FormatQuery(cmd), nil
+
+	case "DELETE":
+		return self.FormatDelete(cmd), nil
+
+	case "INSERT":
+		return self.FormatInsert(cmd), nil
+
+	case "UPDATE":
+		return self.FormatUpdate(cmd), nil
+
+	default:
+		return ex.Statement{}, errors.New("Unsupported cmd")
+	}
+}
+
+func (self *mysqlFormatter) FormatQuery(cmd ex.Command) ex.Statement {
 
 	var stmt string
 	var args []interface{}
 
-	stmt = "SELECT * FROM " + req.Resource
+	stmt = "SELECT * FROM " + cmd.Resource
 
-	if clause, whereArgs := self.FormatWhere(req.Where); clause != "" {
+	if clause, whereArgs := self.FormatWhere(cmd.Where); clause != "" {
 		stmt += " WHERE " + clause
 		args = append(args, whereArgs...)
 	}
 
-	if clause := self.FormatOrder(req.Order); clause != "" {
+	if clause := self.FormatOrder(cmd.Order); clause != "" {
 		stmt += " ORDER BY " + clause
 	}
 
-	if clause := self.FormatLimit(req.Limit); clause != "" {
+	if clause := self.FormatLimit(cmd.Limit); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
-	if clause := self.FormatOffset(req.Offset); clause != "" {
+	if clause := self.FormatOffset(cmd.Offset); clause != "" {
 		stmt += " OFFSET " + clause
 	}
 
-	return ex.Exec(stmt, args...)
+	return ex.Exec(stmt, args...).WithContext(cmd.Context)
 }
 
-func (self *mysqlFormatter) FormatDelete(req ex.Command) ex.Statement {
+func (self *mysqlFormatter) FormatDelete(cmd ex.Command) ex.Statement {
 
 	var stmt string
 	var args []interface{}
 
-	stmt = "DELETE FROM " + req.Resource
+	stmt = "DELETE FROM " + cmd.Resource
 
-	if clause, whereArgs := self.FormatWhere(req.Where); clause != "" {
+	if clause, whereArgs := self.FormatWhere(cmd.Where); clause != "" {
 		stmt += " WHERE " + clause
 		args = append(args, whereArgs...)
 	}
 
-	if clause := self.FormatLimit(req.Limit); clause != "" {
+	if clause := self.FormatOrder(cmd.Order); clause != "" {
+		stmt += " ORDER BY " + clause
+	}
+
+	if clause := self.FormatLimit(cmd.Limit); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
-	return ex.Exec(stmt, args...)
+	return ex.Exec(stmt, args...).WithContext(cmd.Context)
 }
 
-func (self *mysqlFormatter) FormatInsert(req ex.Command) ex.Statement {
+func (self *mysqlFormatter) FormatInsert(cmd ex.Command) ex.Statement {
 
-	columnNames, args := self.FormatValues(req.Values)
+	var stmt string
+	var args []interface{}
 
-	stmt := "INSERT INTO " + req.Resource + " SET " + columnNames
+	stmt = "INSERT INTO " + cmd.Resource
 
-	if clause := self.FormatConflict(req.OnConflict); clause != "" {
+	if columns, columnArgs := self.FormatValues(cmd.Values); columns != "" {
+		stmt += " SET " + columns
+		args = append(args, columnArgs...)
+	}
+
+	if clause := self.FormatConflict(cmd.OnConflict); clause != "" {
 		stmt += " ON " + clause
 	}
 
-	return ex.Exec(stmt, args...)
+	return ex.Exec(stmt, args...).WithContext(cmd.Context)
 }
 
-func (self *mysqlFormatter) FormatUpdate(req ex.Command) ex.Statement {
+func (self *mysqlFormatter) FormatUpdate(cmd ex.Command) ex.Statement {
 
 	var stmt string
 	var args []interface{}
 
-	columnNames, args := self.FormatValues(req.Values)
+	stmt = "UPDATE " + cmd.Resource
 
-	stmt = "UPDATE " + req.Resource + " SET " + columnNames
+	if columns, columnArgs := self.FormatValues(cmd.Values); columns != "" {
+		stmt += " SET " + columns
+		args = append(args, columnArgs...)
+	}
 
-	if clause, whereArgs := self.FormatWhere(req.Where); clause != "" {
+	if clause, whereArgs := self.FormatWhere(cmd.Where); clause != "" {
 		stmt += " WHERE " + clause
 		args = append(args, whereArgs...)
 	}
 
-	if clause := self.FormatLimit(req.Limit); clause != "" {
+	if clause := self.FormatOrder(cmd.Order); clause != "" {
+		stmt += " ORDER BY " + clause
+	}
+
+	if clause := self.FormatLimit(cmd.Limit); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
-	return ex.Exec(stmt, args...)
+	return ex.Exec(stmt, args...).WithContext(cmd.Context)
 }
 
 func (self *mysqlFormatter) FormatValues(values ex.Values) (string, []interface{}) {
@@ -104,7 +141,7 @@ func (self *mysqlFormatter) FormatValues(values ex.Values) (string, []interface{
 			columns = append(columns, fmt.Sprintf("%s=%s", k, value.Arg))
 
 		default:
-			columns = append(columns, fmt.Sprintf("%s=?", k))
+			columns = append(columns, fmt.Sprintf("%s = ?", k))
 			args = append(args, v)
 		}
 	}
@@ -149,7 +186,7 @@ func (self *mysqlFormatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) s
 	var columns []string
 
 	for _, c := range conflict {
-		columns = append(columns, fmt.Sprintf("%s=VALUES(%s)", c, c))
+		columns = append(columns, fmt.Sprintf("%s = VALUES(%s)", c, c))
 	}
 
 	if len(columns) > 0 {

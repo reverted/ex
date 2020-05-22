@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/reverted/ex"
-	"github.com/reverted/ex/server"
 )
 
 type opt func(*interceptor)
@@ -60,12 +59,7 @@ type interceptor struct {
 
 func (self *interceptor) Intercept(ctx context.Context, cmd ex.Command) (ex.Command, error) {
 
-	resource, err := server.Resource(ctx)
-	if err != nil {
-		return cmd, err
-	}
-
-	mod, ok := self.Modifiers[resource]
+	mod, ok := self.Modifiers[cmd.Resource]
 	if !ok {
 		return cmd, nil
 	}

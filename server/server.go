@@ -6,41 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path"
 
 	"github.com/reverted/ex"
 )
 
-const methodKey = "method"
-const resourceKey = "resource"
-
-func Method(ctx context.Context) (string, error) {
-	if method, _ := ctx.Value(methodKey).(string); method != "" {
-		return method, nil
-	} else {
-		return "", errors.New("Missing " + methodKey)
-	}
-}
-
-func Resource(ctx context.Context) (string, error) {
-	if resource, _ := ctx.Value(resourceKey).(string); resource != "" {
-		return resource, nil
-	} else {
-		return "", errors.New("Missing " + resourceKey)
-	}
-}
-
 type Logger interface {
-	Fatal(a ...interface{})
-	Fatalf(format string, a ...interface{})
 	Error(a ...interface{})
-	Errorf(format string, a ...interface{})
-	Warn(a ...interface{})
-	Warnf(format string, a ...interface{})
-	Info(a ...interface{})
 	Infof(format string, a ...interface{})
-	Debug(a ...interface{})
-	Debugf(format string, a ...interface{})
 }
 
 type Parser interface {
@@ -51,24 +23,24 @@ type Interceptor interface {
 	Intercept(context.Context, ex.Command) (ex.Command, error)
 }
 
+type Processor interface {
+	Process(context.Context, []map[string]interface{}) ([]map[string]interface{}, error)
+}
+
 type InterceptorFunc func(context.Context, ex.Command) (ex.Command, error)
 
 func (self InterceptorFunc) Intercept(ctx context.Context, cmd ex.Command) (ex.Command, error) {
 	return self(ctx, cmd)
 }
 
-func Intercept(interceptor func(ctx context.Context, cmd ex.Command) (ex.Command, error)) InterceptorFunc {
-	return InterceptorFunc(interceptor)
-}
-
-type Processor interface {
-	Process(context.Context, []map[string]interface{}) ([]map[string]interface{}, error)
-}
-
 type ProcessorFunc func(context.Context, []map[string]interface{}) ([]map[string]interface{}, error)
 
 func (self ProcessorFunc) Process(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error) {
 	return self(ctx, res)
+}
+
+func Intercept(interceptor func(ctx context.Context, cmd ex.Command) (ex.Command, error)) InterceptorFunc {
+	return InterceptorFunc(interceptor)
 }
 
 func Process(processor func(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error)) ProcessorFunc {
@@ -111,7 +83,7 @@ func New(logger Logger, client Client, opts ...opt) *server {
 	server := &server{
 		Logger:       logger,
 		Client:       client,
-		Parser:       NewParser(logger),
+		Parser:       NewParser(),
 		Interceptors: []Interceptor{},
 		Processors:   []Processor{},
 		IncludeKeys:  map[string]bool{},
@@ -135,13 +107,9 @@ type server struct {
 
 func (self *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	self.Logger.Info("<<< ", r.Method, " : ", r.URL)
+	self.Logger.Infof("<<< %v : %v", r.Method, r.URL)
 
-	ctx := r.Context()
-	ctx = context.WithValue(ctx, methodKey, r.Method)
-	ctx = context.WithValue(ctx, resourceKey, path.Base(r.URL.Path))
-
-	if data, err := self.serve(r.WithContext(ctx)); err != nil {
+	if data, err := self.serve(r); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		self.Logger.Error(err)
 
@@ -216,7 +184,7 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 		}
 	}
 
-	for _, req := range batch {
+	for _, req := range batch.Requests {
 		if cmd, ok := req.(ex.Command); ok {
 			for _, i := range self.Interceptors {
 				cmd, err = i.Intercept(ctx, cmd)

@@ -1,10 +1,12 @@
-package http
+package xhttp
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -65,7 +67,7 @@ func (self *formatter) FormatQuery(req ex.Command) (*http.Request, error) {
 	url.Path = path.Join(url.Path, req.Resource)
 	url.RawQuery = params.Encode()
 
-	return http.NewRequest("GET", url.String(), nil)
+	return self.FormatHttpRequest(req.Context, "GET", url.String(), nil)
 }
 
 func (self *formatter) FormatDelete(req ex.Command) (*http.Request, error) {
@@ -79,7 +81,7 @@ func (self *formatter) FormatDelete(req ex.Command) (*http.Request, error) {
 	url.Path = path.Join(url.Path, req.Resource)
 	url.RawQuery = params.Encode()
 
-	return http.NewRequest("DELETE", url.String(), nil)
+	return self.FormatHttpRequest(req.Context, "DELETE", url.String(), nil)
 }
 
 func (self *formatter) FormatInsert(req ex.Command) (*http.Request, error) {
@@ -98,7 +100,7 @@ func (self *formatter) FormatInsert(req ex.Command) (*http.Request, error) {
 	url.Path = path.Join(url.Path, req.Resource)
 	url.RawQuery = params.Encode()
 
-	return http.NewRequest("POST", url.String(), bytes.NewBuffer(body))
+	return self.FormatHttpRequest(req.Context, "POST", url.String(), bytes.NewBuffer(body))
 }
 
 func (self *formatter) FormatUpdate(req ex.Command) (*http.Request, error) {
@@ -117,7 +119,7 @@ func (self *formatter) FormatUpdate(req ex.Command) (*http.Request, error) {
 	url.Path = path.Join(url.Path, req.Resource)
 	url.RawQuery = params.Encode()
 
-	return http.NewRequest("PUT", url.String(), bytes.NewBuffer(body))
+	return self.FormatHttpRequest(req.Context, "PUT", url.String(), bytes.NewBuffer(body))
 }
 
 func (self *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
@@ -130,7 +132,7 @@ func (self *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
 	url := *self.URL
 	url.Path = path.Join(url.Path, ":batch")
 
-	return http.NewRequest("POST", url.String(), bytes.NewBuffer(body))
+	return self.FormatHttpRequest(batch.Context, "POST", url.String(), bytes.NewBuffer(body))
 }
 
 func (self *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
@@ -170,4 +172,12 @@ func (self *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 func (self *formatter) FormatBody(values interface{}) ([]byte, error) {
 
 	return json.Marshal(values)
+}
+
+func (self *formatter) FormatHttpRequest(ctx context.Context, method, url string, body io.Reader) (*http.Request, error) {
+	if ctx != nil {
+		return http.NewRequestWithContext(ctx, method, url, body)
+	} else {
+		return http.NewRequest(method, url, body)
+	}
 }

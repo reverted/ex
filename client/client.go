@@ -1,13 +1,13 @@
 package client
 
 import (
-	net "net/http"
+	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/reverted/ex"
-	"github.com/reverted/ex/client/http"
-	"github.com/reverted/ex/client/sql"
+	"github.com/reverted/ex/client/xhttp"
+	"github.com/reverted/ex/client/xsql"
 )
 
 type Logger interface {
@@ -34,19 +34,19 @@ type Client interface {
 }
 
 func NewHttpFromEnv(logger Logger) *client {
-	return New(logger, http.NewExecutorFromEnv(logger))
+	return New(logger, xhttp.NewExecutorFromEnv(logger))
 }
 
-func NewHttp(logger Logger, client *net.Client, target *url.URL) *client {
-	return New(logger, http.NewExecutor(logger, http.With(client, target)))
+func NewHttp(logger Logger, client *http.Client, target *url.URL) *client {
+	return New(logger, xhttp.NewExecutor(logger, xhttp.With(client, target)))
 }
 
 func NewMysqlFromEnv(logger Logger) *client {
-	return New(logger, sql.NewExecutorFromEnv(logger))
+	return New(logger, xsql.NewExecutorFromEnv(logger))
 }
 
 func NewMysql(logger Logger, uri string) *client {
-	return New(logger, sql.NewExecutor(logger, sql.WithMysql(uri)))
+	return New(logger, xsql.NewExecutor(logger, xsql.WithMysql(uri)))
 }
 
 func New(logger Logger, executor Executor) *client {
