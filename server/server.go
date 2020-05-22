@@ -6,8 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 
 	"github.com/reverted/ex"
+)
+
+const (
+	ctxKeyMethod   = "method"
+	ctxKeyResource = "resource"
 )
 
 type Logger interface {
@@ -109,7 +115,11 @@ func (self *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	self.Logger.Infof("<<< %v : %v", r.Method, r.URL)
 
-	if data, err := self.serve(r); err != nil {
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, ctxKeyMethod, r.Method)
+	ctx = context.WithValue(ctx, ctxKeyResource, path.Base(r.URL.Path))
+
+	if data, err := self.serve(r.WithContext(ctx)); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		self.Logger.Error(err)
 
