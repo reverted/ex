@@ -1,73 +1,85 @@
 package client
 
 import (
-	"net/http"
-	"net/url"
+	"context"
 	"time"
 
 	"github.com/reverted/ex"
-	"github.com/reverted/ex/client/xhttp"
-	"github.com/reverted/ex/client/xsql"
 )
 
 type Logger interface {
-	Fatal(a ...interface{})
-	Fatalf(format string, a ...interface{})
-	Error(a ...interface{})
-	Errorf(format string, a ...interface{})
-	Warn(a ...interface{})
-	Warnf(format string, a ...interface{})
-	Info(a ...interface{})
-	Infof(format string, a ...interface{})
-	Debug(a ...interface{})
-	Debugf(format string, a ...interface{})
+	Errorf(string, ...interface{})
+	Infof(string, ...interface{})
 }
 
 type Executor interface {
-	Execute(req ex.Request, data interface{}) (bool, error)
-	Close() error
+	Execute(context.Context, ex.Request, interface{}) (bool, error)
+}
+
+type Span interface {
+	Finish()
+}
+
+type Tracer interface {
+	StartSpan(context.Context, string) (Span, context.Context)
 }
 
 type Client interface {
 	Exec(ex.Request, ...interface{}) error
-	Close() error
+	ExecContext(context.Context, ex.Request, ...interface{}) error
 }
 
-func NewHttpFromEnv(logger Logger) *client {
-	return New(logger, xhttp.NewExecutorFromEnv(logger))
+func WithExecutor(executor Executor) opt {
+	return func(self *client) {
+		self.Executor = executor
+	}
 }
 
-func NewHttp(logger Logger, client *http.Client, target *url.URL) *client {
-	return New(logger, xhttp.NewExecutor(logger, xhttp.With(client, target)))
+func WithTracer(tracer Tracer) opt {
+	return func(self *client) {
+		self.Tracer = tracer
+	}
 }
 
-func NewMysqlFromEnv(logger Logger) *client {
-	return New(logger, xsql.NewExecutorFromEnv(logger))
-}
+type opt func(*client)
 
-func NewMysql(logger Logger, uri string) *client {
-	return New(logger, xsql.NewExecutor(logger, xsql.WithMysql(uri)))
-}
+func New(logger Logger, opts ...opt) *client {
 
-func New(logger Logger, executor Executor) *client {
-	return &client{logger, executor}
+	client := &client{
+		Logger: logger,
+		Tracer: noopTracer{},
+	}
+
+	for _, opt := range opts {
+		opt(client)
+	}
+
+	return client
 }
 
 type client struct {
 	Logger
 	Executor
+	Tracer
 }
 
 func (self *client) Exec(req ex.Request, res ...interface{}) error {
+	return self.ExecContext(context.Background(), req, res...)
+}
+
+func (self *client) ExecContext(ctx context.Context, req ex.Request, res ...interface{}) error {
+
+	span, spanCtx := self.Tracer.StartSpan(ctx, "exec")
+	defer span.Finish()
 
 	if len(res) > 0 {
-		return self.execute(req, res[0])
+		return self.execute(spanCtx, req, res[0])
 	} else {
-		return self.execute(req, nil)
+		return self.execute(spanCtx, req, nil)
 	}
 }
 
-func (self *client) execute(req ex.Request, data interface{}) error {
+func (self *client) execute(ctx context.Context, req ex.Request, data interface{}) error {
 
 	var err error
 	var retry bool
@@ -79,7 +91,7 @@ func (self *client) execute(req ex.Request, data interface{}) error {
 
 		self.Logger.Infof(">>> %+v", req)
 
-		if retry, err = self.Executor.Execute(req, data); !retry {
+		if retry, err = self.Executor.Execute(ctx, req, data); !retry {
 			break
 		}
 
@@ -93,6 +105,12 @@ func (self *client) execute(req ex.Request, data interface{}) error {
 	return err
 }
 
-func (self *client) Close() error {
-	return self.Executor.Close()
+type noopSpan struct{}
+
+func (self noopSpan) Finish() {}
+
+type noopTracer struct{}
+
+func (self noopTracer) StartSpan(ctx context.Context, name string) (Span, context.Context) {
+	return noopSpan{}, ctx
 }

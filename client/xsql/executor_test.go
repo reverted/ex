@@ -1,6 +1,7 @@
 package xsql_test
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo"
@@ -14,7 +15,7 @@ import (
 )
 
 type Executor interface {
-	Execute(ex.Request, interface{}) (bool, error)
+	Execute(context.Context, ex.Request, interface{}) (bool, error)
 }
 
 var _ = Describe("Executor", func() {
@@ -33,6 +34,7 @@ var _ = Describe("Executor", func() {
 		mockRows       *mocks.MockRows
 		mockResult     *mocks.MockResult
 
+		ctx      context.Context
 		executor Executor
 	)
 
@@ -52,6 +54,8 @@ var _ = Describe("Executor", func() {
 		mockRows.EXPECT().Close().Return(nil)
 		mockResult = mocks.NewMockResult(mockCtrl)
 
+		ctx = context.Background()
+
 		executor = xsql.NewExecutor(logger,
 			xsql.WithConnection(mockConnection),
 			xsql.WithFormatter(mockFormatter),
@@ -61,7 +65,7 @@ var _ = Describe("Executor", func() {
 
 	JustBeforeEach(func() {
 		var retry bool
-		retry, err = executor.Execute(req, data)
+		retry, err = executor.Execute(ctx, req, data)
 		Expect(retry).To(BeFalse())
 	})
 
@@ -105,7 +109,7 @@ var _ = Describe("Executor", func() {
 
 				Context("when executing the request fails", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().Query("some-stmt", "some-arg").Return(nil, errors.New("nope"))
+						mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 					})
 
 					It("errors", func() {
@@ -115,7 +119,7 @@ var _ = Describe("Executor", func() {
 
 				Context("when executing the request succeeds", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().Query("some-stmt", "some-arg").Return(mockRows, nil)
+						mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 					})
 
 					Context("when scanning the rows fails", func() {
@@ -203,7 +207,7 @@ var _ = Describe("Executor", func() {
 
 					Context("when executing the request fails", func() {
 						BeforeEach(func() {
-							mockTx.EXPECT().Exec("some-stmt", "some-arg").Return(nil, errors.New("nope"))
+							mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 						})
 
 						It("errors", func() {
@@ -213,7 +217,7 @@ var _ = Describe("Executor", func() {
 
 					Context("when executing the request succeeds", func() {
 						BeforeEach(func() {
-							mockTx.EXPECT().Exec("some-stmt", "some-arg").Return(mockResult, nil)
+							mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
 						})
 
 						Context("when commiting the tx fails", func() {
@@ -263,7 +267,7 @@ var _ = Describe("Executor", func() {
 
 						Context("when executing the query fails", func() {
 							BeforeEach(func() {
-								mockTx.EXPECT().Query("some-stmt", "some-arg").Return(nil, errors.New("nope"))
+								mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 							})
 
 							It("errors", func() {
@@ -273,7 +277,7 @@ var _ = Describe("Executor", func() {
 
 						Context("when executing the query succeeds", func() {
 							BeforeEach(func() {
-								mockTx.EXPECT().Query("some-stmt", "some-arg").Return(mockRows, nil)
+								mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 							})
 
 							Context("when scanning the rows fails", func() {
@@ -293,7 +297,7 @@ var _ = Describe("Executor", func() {
 
 								Context("when executing the request fails", func() {
 									BeforeEach(func() {
-										mockTx.EXPECT().Exec("some-stmt", "some-arg").Return(nil, errors.New("nope"))
+										mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 									})
 
 									It("errors", func() {
@@ -303,7 +307,7 @@ var _ = Describe("Executor", func() {
 
 								Context("when executing the request succeeds", func() {
 									BeforeEach(func() {
-										mockTx.EXPECT().Exec("some-stmt", "some-arg").Return(mockResult, nil)
+										mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
 									})
 
 									Context("when commiting the tx fails", func() {
@@ -374,7 +378,7 @@ var _ = Describe("Executor", func() {
 
 				Context("when executing the request fails", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().Exec("some-stmt", "some-arg").Return(nil, errors.New("nope"))
+						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 					})
 
 					It("errors", func() {
@@ -384,7 +388,7 @@ var _ = Describe("Executor", func() {
 
 				Context("when executing the request succeeds", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().Exec("some-stmt", "some-arg").Return(mockResult, nil)
+						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
 					})
 
 					Context("when retrieving the id fails", func() {
@@ -453,7 +457,7 @@ var _ = Describe("Executor", func() {
 
 								Context("when executing the query fails", func() {
 									BeforeEach(func() {
-										mockTx.EXPECT().Query("some-stmt", "some-arg").Return(nil, errors.New("nope"))
+										mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 									})
 
 									It("errors", func() {
@@ -463,7 +467,7 @@ var _ = Describe("Executor", func() {
 
 								Context("when executing the query succeeds", func() {
 									BeforeEach(func() {
-										mockTx.EXPECT().Query("some-stmt", "some-arg").Return(mockRows, nil)
+										mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 									})
 
 									Context("when scanning the rows fails", func() {
@@ -550,7 +554,7 @@ var _ = Describe("Executor", func() {
 
 				Context("when executing the request fails", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().Exec("some-stmt", "some-arg").Return(nil, errors.New("nope"))
+						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 					})
 
 					It("errors", func() {
@@ -560,7 +564,7 @@ var _ = Describe("Executor", func() {
 
 				Context("when executing the request succeeds", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().Exec("some-stmt", "some-arg").Return(mockResult, nil)
+						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
 					})
 
 					Context("when the data result is nil", func() {
@@ -614,7 +618,7 @@ var _ = Describe("Executor", func() {
 
 							Context("when executing the query fails", func() {
 								BeforeEach(func() {
-									mockTx.EXPECT().Query("some-stmt", "some-arg").Return(nil, errors.New("nope"))
+									mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 								})
 
 								It("errors", func() {
@@ -624,7 +628,7 @@ var _ = Describe("Executor", func() {
 
 							Context("when executing the query succeeds", func() {
 								BeforeEach(func() {
-									mockTx.EXPECT().Query("some-stmt", "some-arg").Return(mockRows, nil)
+									mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 								})
 
 								Context("when scanning the rows fails", func() {

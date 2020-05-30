@@ -25,7 +25,6 @@ func (self *parser) Parse(r *http.Request) (ex.Request, error) {
 
 	if resource == ":batch" {
 		return self.ParseBatch(r)
-
 	} else {
 		return self.ParseCommand(r)
 	}

@@ -14,6 +14,7 @@ import (
 
 	"github.com/reverted/ex"
 	"github.com/reverted/ex/client"
+	"github.com/reverted/ex/client/xsql"
 	"github.com/reverted/ex/server"
 	"github.com/reverted/logger"
 )
@@ -23,12 +24,18 @@ func TestServer(t *testing.T) {
 	RunSpecs(t, "Server Suite")
 }
 
+type Conn interface {
+	xsql.Connection
+	Close() error
+}
+
 var (
 	db *database
 
 	apiServer *httptest.Server
 	apiClient *http.Client
 
+	sqlConn   Conn
 	sqlClient client.Client
 )
 
@@ -41,7 +48,18 @@ var _ = BeforeEach(func() {
 
 	db = NewDatabase()
 
-	sqlClient = client.NewMysql(logger, db.Uri())
+	sqlConn = xsql.NewConn("mysql", db.Uri())
+
+	sqlExecutor := xsql.NewExecutor(
+		logger,
+		xsql.WithMysqlFormatter(),
+		xsql.WithConnection(sqlConn),
+	)
+
+	sqlClient = client.New(
+		logger,
+		client.WithExecutor(sqlExecutor),
+	)
 
 	apiServer = httptest.NewServer(server.New(logger, sqlClient))
 	apiClient = apiServer.Client()
@@ -49,7 +67,7 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	apiServer.Close()
-	sqlClient.Close()
+	sqlConn.Close()
 	db.Close()
 })
 

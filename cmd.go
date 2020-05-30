@@ -1,39 +1,21 @@
 package ex
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 )
 
-type Statement struct {
-	context.Context
-
-	Stmt string
-	Args []interface{}
-}
-
-func (self Statement) exec() {}
-
-func (self Statement) WithContext(ctx context.Context) Statement {
-	self.Context = ctx
-	return self
+type Request interface {
+	exec()
 }
 
 type Batch struct {
-	context.Context
-
 	Requests []Request
 }
 
 func (self Batch) exec() {}
-
-func (self Batch) WithContext(ctx context.Context) Batch {
-	self.Context = ctx
-	return self
-}
 
 func (self Batch) MarshalJSON() ([]byte, error) {
 	return json.Marshal(self.Requests)
@@ -43,9 +25,14 @@ func (self *Batch) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &self.Requests)
 }
 
-type Command struct {
-	context.Context
+type Statement struct {
+	Stmt string
+	Args []interface{}
+}
 
+func (self Statement) exec() {}
+
+type Command struct {
 	Action     string
 	Resource   string
 	Where      Where
@@ -57,11 +44,6 @@ type Command struct {
 }
 
 func (self Command) exec() {}
-
-func (self Command) WithContext(ctx context.Context) Command {
-	self.Context = ctx
-	return self
-}
 
 func (self Command) MarshalJSON() ([]byte, error) {
 

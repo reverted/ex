@@ -45,8 +45,8 @@ func Bulk(reqs ...Request) Batch {
 	}
 }
 
-type Request interface {
-	exec()
+type opt interface {
+	opt(cmd *Command)
 }
 
 func cmd(action, resource string, opts ...opt) Command {
@@ -66,10 +66,6 @@ func cmd(action, resource string, opts ...opt) Command {
 	}
 
 	return cmd
-}
-
-type opt interface {
-	opt(cmd *Command)
 }
 
 type Where map[string]interface{}
@@ -126,18 +122,58 @@ func (self OnConflictError) opt(cmd *Command) {
 	cmd.OnConflict = self
 }
 
-type Eq struct{ Arg interface{} }
-type NotEq struct{ Arg interface{} }
-type Gt struct{ Arg interface{} }
-type GtEq struct{ Arg interface{} }
-type Lt struct{ Arg interface{} }
-type LtEq struct{ Arg interface{} }
-type Like struct{ Arg string }
-type NotLike struct{ Arg string }
-type Is struct{ Arg interface{} }
-type IsNot struct{ Arg interface{} }
+type Eq struct {
+	Arg interface{}
+}
+
+type NotEq struct {
+	Arg interface{}
+}
+
+type Gt struct {
+	Arg interface{}
+}
+
+type GtEq struct {
+	Arg interface{}
+}
+
+type Lt struct {
+	Arg interface{}
+}
+
+type LtEq struct {
+	Arg interface{}
+}
+
+type Like struct {
+	Arg string
+}
+
+type NotLike struct {
+	Arg string
+}
+
+type Is struct {
+	Arg interface{}
+}
+
+type IsNot struct {
+	Arg interface{}
+}
+
 type In []interface{}
+
 type NotIn []interface{}
-type Btwn struct{ Start, End interface{} }
-type NotBtwn struct{ Start, End interface{} }
-type Literal struct{ Arg string }
+
+type Btwn struct {
+	Start, End interface{}
+}
+
+type NotBtwn struct {
+	Start, End interface{}
+}
+
+type Literal struct {
+	Arg string
+}

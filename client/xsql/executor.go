@@ -2,19 +2,15 @@ package xsql
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"os"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/reverted/ex"
 )
 
 type Logger interface {
-	Fatal(...interface{})
 	Infof(string, ...interface{})
 }
 
@@ -28,7 +24,6 @@ type Scanner interface {
 
 type Connection interface {
 	Begin() (Tx, error)
-	Close() error
 }
 
 type Tx interface {
@@ -60,46 +55,9 @@ type Result interface {
 
 type opt func(*executor)
 
-func FromEnv() opt {
+func WithMysqlFormatter() opt {
 	return func(self *executor) {
-		WithMysql(os.Getenv("REVERTED_MYSQL_URL"))(self)
-	}
-}
-
-func WithMysql(uri string) opt {
-	return func(self *executor) {
-		WithFormatter(NewMysqlFormatter())(self)
-		WithMysqlConn(uri)(self)
-	}
-}
-
-func WithMysqlConn(uri string) opt {
-	return func(self *executor) {
-
-		var (
-			err  error
-			conn *sql.DB
-		)
-
-		for _, interval := range []int{0, 1, 2, 5, 10, 30, 60} {
-			time.Sleep(time.Duration(interval) * time.Second)
-
-			if conn, err = sql.Open("mysql", uri); err != nil {
-				continue
-			}
-
-			if err := conn.Ping(); err != nil {
-				continue
-			}
-
-			break
-		}
-
-		if err != nil {
-			self.Logger.Fatal(err)
-		}
-
-		WithConnection(NewSqlAdapter(conn))(self)
+		self.Formatter = NewMysqlFormatter()
 	}
 }
 
@@ -121,10 +79,6 @@ func WithConnection(connection Connection) opt {
 	}
 }
 
-func NewExecutorFromEnv(logger Logger) *executor {
-	return NewExecutor(logger, FromEnv())
-}
-
 func NewExecutor(logger Logger, opts ...opt) *executor {
 
 	executor := &executor{Logger: logger}
@@ -133,16 +87,16 @@ func NewExecutor(logger Logger, opts ...opt) *executor {
 		opt(executor)
 	}
 
-	if executor.Formatter == nil {
-		WithFormatter(NewMysqlFormatter())(executor)
-	}
-
 	if executor.Scanner == nil {
 		WithScanner(NewScanner())(executor)
 	}
 
+	if executor.Formatter == nil {
+		WithMysqlFormatter()(executor)
+	}
+
 	if executor.Connection == nil {
-		WithMysqlConn("tcp(localhost:3306)/dev")(executor)
+		WithConnection(NewConn("mysql", "tcp(localhost:3306)/dev"))(executor)
 	}
 
 	return executor
@@ -151,16 +105,12 @@ func NewExecutor(logger Logger, opts ...opt) *executor {
 type executor struct {
 	Logger
 	Formatter
-	Scanner
 	Connection
+	Scanner
 }
 
-func (self *executor) Close() error {
-	return self.Connection.Close()
-}
-
-func (self *executor) Execute(req ex.Request, data interface{}) (bool, error) {
-	err := self.execute(req, data)
+func (self *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
+	err := self.execute(ctx, req, data)
 
 	switch t := err.(type) {
 	case *mysql.MySQLError:
@@ -171,7 +121,7 @@ func (self *executor) Execute(req ex.Request, data interface{}) (bool, error) {
 	}
 }
 
-func (self *executor) execute(req ex.Request, data interface{}) error {
+func (self *executor) execute(ctx context.Context, req ex.Request, data interface{}) error {
 
 	tx, err := self.Connection.Begin()
 	if err != nil {
@@ -180,51 +130,51 @@ func (self *executor) execute(req ex.Request, data interface{}) error {
 
 	defer tx.Rollback()
 
-	if err = self.executeTx(tx, req, data); err != nil {
+	if err = self.executeTx(ctx, tx, req, data); err != nil {
 		return err
 	}
 
 	return tx.Commit()
 }
 
-func (self *executor) executeTx(tx Tx, req ex.Request, data interface{}) error {
+func (self *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data interface{}) error {
 
 	switch c := req.(type) {
 	case ex.Statement:
-		return self.stmt(tx, c)
+		return self.stmt(ctx, tx, c)
 
 	case ex.Command:
-		return self.cmd(tx, c, data)
+		return self.cmd(ctx, tx, c, data)
 
 	case ex.Batch:
-		return self.batch(tx, c, data)
+		return self.batch(ctx, tx, c, data)
 
 	default:
 		return errors.New("Unsupported req")
 	}
 }
 
-func (self *executor) cmd(tx Tx, cmd ex.Command, data interface{}) error {
+func (self *executor) cmd(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
 	switch strings.ToUpper(cmd.Action) {
 	case "QUERY":
-		return self.query(tx, cmd, data)
+		return self.query(ctx, tx, cmd, data)
 
 	case "DELETE":
-		return self.delete(tx, cmd, data)
+		return self.delete(ctx, tx, cmd, data)
 
 	case "INSERT":
-		return self.insert(tx, cmd, data)
+		return self.insert(ctx, tx, cmd, data)
 
 	case "UPDATE":
-		return self.update(tx, cmd, data)
+		return self.update(ctx, tx, cmd, data)
 
 	default:
 		return errors.New("Unsupported cmd")
 	}
 }
 
-func (self *executor) query(tx Tx, cmd ex.Command, data interface{}) error {
+func (self *executor) query(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
 	stmt, err := self.Formatter.Format(cmd)
 	if err != nil {
@@ -233,7 +183,7 @@ func (self *executor) query(tx Tx, cmd ex.Command, data interface{}) error {
 
 	self.Logger.Infof(">>> %v", stmt)
 
-	rows, err := self.queryContext(tx, stmt)
+	rows, err := self.queryContext(ctx, tx, stmt)
 	if err != nil {
 		return err
 	}
@@ -243,7 +193,7 @@ func (self *executor) query(tx Tx, cmd ex.Command, data interface{}) error {
 	return self.Scanner.Scan(rows, data)
 }
 
-func (self *executor) delete(tx Tx, cmd ex.Command, data interface{}) error {
+func (self *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
 	stmt, err := self.Formatter.Format(cmd)
 	if err != nil {
@@ -254,15 +204,15 @@ func (self *executor) delete(tx Tx, cmd ex.Command, data interface{}) error {
 
 	if data != nil {
 		q := ex.Query(cmd.Resource, cmd.Where, cmd.Limit, cmd.Offset)
-		if err := self.query(tx, q.WithContext(cmd.Context), data); err != nil {
+		if err := self.query(ctx, tx, q, data); err != nil {
 			return err
 		}
 	}
 
-	return self.stmt(tx, stmt)
+	return self.stmt(ctx, tx, stmt)
 }
 
-func (self *executor) insert(tx Tx, cmd ex.Command, data interface{}) error {
+func (self *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
 	stmt, err := self.Formatter.Format(cmd)
 	if err != nil {
@@ -271,7 +221,7 @@ func (self *executor) insert(tx Tx, cmd ex.Command, data interface{}) error {
 
 	self.Logger.Infof(">>> %v", stmt)
 
-	res, err := self.execContext(tx, stmt)
+	res, err := self.execContext(ctx, tx, stmt)
 	if err != nil {
 		return err
 	}
@@ -284,14 +234,14 @@ func (self *executor) insert(tx Tx, cmd ex.Command, data interface{}) error {
 	if data != nil {
 		if id > 0 {
 			q := ex.Query(cmd.Resource, ex.Where{"id": id})
-			return self.query(tx, q.WithContext(cmd.Context), data)
+			return self.query(ctx, tx, q, data)
 		}
 	}
 
 	return nil
 }
 
-func (self *executor) update(tx Tx, cmd ex.Command, data interface{}) error {
+func (self *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
 	stmt, err := self.Formatter.Format(cmd)
 	if err != nil {
@@ -300,7 +250,7 @@ func (self *executor) update(tx Tx, cmd ex.Command, data interface{}) error {
 
 	self.Logger.Infof(">>> %v", stmt)
 
-	if err := self.stmt(tx, stmt); err != nil {
+	if err := self.stmt(ctx, tx, stmt); err != nil {
 		return err
 	}
 
@@ -313,16 +263,16 @@ func (self *executor) update(tx Tx, cmd ex.Command, data interface{}) error {
 		}
 
 		q := ex.Query(cmd.Resource, where, cmd.Limit, cmd.Offset)
-		return self.query(tx, q.WithContext(cmd.Context), data)
+		return self.query(ctx, tx, q, data)
 	}
 
 	return nil
 }
 
-func (self *executor) batch(tx Tx, batch ex.Batch, data interface{}) error {
+func (self *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data interface{}) error {
 
 	for _, c := range batch.Requests {
-		if err := self.executeTx(tx, c, data); err != nil {
+		if err := self.executeTx(ctx, tx, c, data); err != nil {
 			return err
 		}
 	}
@@ -330,22 +280,22 @@ func (self *executor) batch(tx Tx, batch ex.Batch, data interface{}) error {
 	return nil
 }
 
-func (self *executor) stmt(tx Tx, stmt ex.Statement) error {
-	_, err := self.execContext(tx, stmt)
+func (self *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement) error {
+	_, err := self.execContext(ctx, tx, stmt)
 	return err
 }
 
-func (self *executor) queryContext(tx Tx, stmt ex.Statement) (Rows, error) {
-	if stmt.Context != nil {
-		return tx.QueryContext(stmt.Context, stmt.Stmt, stmt.Args...)
+func (self *executor) queryContext(ctx context.Context, tx Tx, stmt ex.Statement) (Rows, error) {
+	if ctx != nil {
+		return tx.QueryContext(ctx, stmt.Stmt, stmt.Args...)
 	} else {
 		return tx.Query(stmt.Stmt, stmt.Args...)
 	}
 }
 
-func (self *executor) execContext(tx Tx, stmt ex.Statement) (Result, error) {
-	if stmt.Context != nil {
-		return tx.ExecContext(stmt.Context, stmt.Stmt, stmt.Args...)
+func (self *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement) (Result, error) {
+	if ctx != nil {
+		return tx.ExecContext(ctx, stmt.Stmt, stmt.Args...)
 	} else {
 		return tx.Exec(stmt.Stmt, stmt.Args...)
 	}

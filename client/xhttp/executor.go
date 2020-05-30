@@ -6,16 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
-	"strings"
-
-	"golang.org/x/oauth2/clientcredentials"
 
 	"github.com/reverted/ex"
 )
 
 type Logger interface {
-	Fatal(a ...interface{})
 	Infof(format string, a ...interface{})
 }
 
@@ -28,34 +23,6 @@ type Client interface {
 }
 
 type opt func(*executor)
-
-func FromEnv() opt {
-	return func(self *executor) {
-
-		config := clientcredentials.Config{
-			ClientID:     os.Getenv("REVERTED_API_CLIENT_ID"),
-			ClientSecret: os.Getenv("REVERTED_API_CLIENT_SECRET"),
-			TokenURL:     os.Getenv("REVERTED_API_TOKEN_URL"),
-			Scopes:       strings.Split(os.Getenv("REVERTED_API_SCOPE"), ","),
-		}
-
-		client := config.Client(context.Background())
-
-		url, err := url.Parse(os.Getenv("REVERTED_API_URL"))
-		if err != nil {
-			self.Logger.Fatal(err)
-		}
-
-		With(client, url)(self)
-	}
-}
-
-func With(client Client, target *url.URL) opt {
-	return func(self *executor) {
-		WithFormatter(NewFormatter(target))(self)
-		WithClient(client)(self)
-	}
-}
 
 func WithTarget(target *url.URL) opt {
 	return func(self *executor) {
@@ -75,10 +42,6 @@ func WithClient(client Client) opt {
 	}
 }
 
-func NewExecutorFromEnv(logger Logger) *executor {
-	return NewExecutor(logger, FromEnv())
-}
-
 func NewExecutor(logger Logger, opts ...opt) *executor {
 
 	executor := &executor{Logger: logger}
@@ -89,7 +52,7 @@ func NewExecutor(logger Logger, opts ...opt) *executor {
 
 	if executor.Formatter == nil {
 		url, _ := url.Parse("http://localhost:8080")
-		WithFormatter(NewFormatter(url))(executor)
+		WithTarget(url)(executor)
 	}
 
 	if executor.Client == nil {
@@ -105,25 +68,21 @@ type executor struct {
 	Client
 }
 
-func (self *executor) Close() error {
-	return nil
-}
-
-func (self *executor) Execute(req ex.Request, data interface{}) (bool, error) {
+func (self *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
 
 	r, err := self.Formatter.Format(req)
 	if err != nil {
 		return false, err
 	}
 
-	return self.exec(r, data)
+	return self.exec(ctx, r, data)
 }
 
-func (self *executor) exec(r *http.Request, data interface{}) (bool, error) {
+func (self *executor) exec(ctx context.Context, r *http.Request, data interface{}) (bool, error) {
 
 	self.Logger.Infof(">>> %v", r.URL)
 
-	resp, err := self.Client.Do(r)
+	resp, err := self.Client.Do(r.WithContext(ctx))
 	if err != nil {
 		return true, err
 	}

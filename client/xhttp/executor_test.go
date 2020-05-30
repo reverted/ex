@@ -2,6 +2,7 @@ package xhttp_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 )
 
 type Executor interface {
-	Execute(req ex.Request, data interface{}) (bool, error)
+	Execute(context.Context, ex.Request, interface{}) (bool, error)
 }
 
 var _ = Describe("Executor", func() {
@@ -33,6 +34,7 @@ var _ = Describe("Executor", func() {
 		mockClient    *mocks.MockClient
 		mockFormatter *mocks.MockFormatter
 
+		ctx      context.Context
 		executor Executor
 	)
 
@@ -46,6 +48,8 @@ var _ = Describe("Executor", func() {
 		mockClient = mocks.NewMockClient(mockCtrl)
 		mockFormatter = mocks.NewMockFormatter(mockCtrl)
 
+		ctx = context.Background()
+
 		executor = xhttp.NewExecutor(
 			logger,
 			xhttp.WithClient(mockClient),
@@ -54,7 +58,7 @@ var _ = Describe("Executor", func() {
 	})
 
 	JustBeforeEach(func() {
-		retry, err = executor.Execute(req, &res)
+		retry, err = executor.Execute(ctx, req, &res)
 	})
 
 	Context("when running a query", func() {
@@ -89,7 +93,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when making the request fails", func() {
 				BeforeEach(func() {
-					mockClient.EXPECT().Do(httpReq).Return(nil, errors.New("nope"))
+					mockClient.EXPECT().Do(httpReq.WithContext(ctx)).Return(nil, errors.New("nope"))
 				})
 
 				It("errors", func() {
@@ -103,7 +107,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when making the request succeeds", func() {
 				BeforeEach(func() {
-					mockClient.EXPECT().Do(httpReq).Return(httpResp, nil)
+					mockClient.EXPECT().Do(httpReq.WithContext(ctx)).Return(httpResp, nil)
 				})
 
 				Context("when the server responds with a 5xx status", func() {

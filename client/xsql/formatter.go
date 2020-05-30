@@ -57,7 +57,7 @@ func (self *mysqlFormatter) FormatQuery(cmd ex.Command) ex.Statement {
 		stmt += " OFFSET " + clause
 	}
 
-	return ex.Exec(stmt, args...).WithContext(cmd.Context)
+	return ex.Exec(stmt, args...)
 }
 
 func (self *mysqlFormatter) FormatDelete(cmd ex.Command) ex.Statement {
@@ -80,7 +80,7 @@ func (self *mysqlFormatter) FormatDelete(cmd ex.Command) ex.Statement {
 		stmt += " LIMIT " + clause
 	}
 
-	return ex.Exec(stmt, args...).WithContext(cmd.Context)
+	return ex.Exec(stmt, args...)
 }
 
 func (self *mysqlFormatter) FormatInsert(cmd ex.Command) ex.Statement {
@@ -99,7 +99,7 @@ func (self *mysqlFormatter) FormatInsert(cmd ex.Command) ex.Statement {
 		stmt += " ON " + clause
 	}
 
-	return ex.Exec(stmt, args...).WithContext(cmd.Context)
+	return ex.Exec(stmt, args...)
 }
 
 func (self *mysqlFormatter) FormatUpdate(cmd ex.Command) ex.Statement {
@@ -127,7 +127,7 @@ func (self *mysqlFormatter) FormatUpdate(cmd ex.Command) ex.Statement {
 		stmt += " LIMIT " + clause
 	}
 
-	return ex.Exec(stmt, args...).WithContext(cmd.Context)
+	return ex.Exec(stmt, args...)
 }
 
 func (self *mysqlFormatter) FormatValues(values ex.Values) (string, []interface{}) {

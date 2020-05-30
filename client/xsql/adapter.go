@@ -3,17 +3,43 @@ package xsql
 import (
 	"context"
 	"database/sql"
+	"log"
+	"time"
 )
 
-func NewSqlAdapter(db *sql.DB) *adapter {
-	return &adapter{db}
+func NewConn(driver, uri string) *conn {
+
+	var (
+		err error
+		db  *sql.DB
+	)
+
+	for _, interval := range []int{0, 1, 2, 5, 10, 30, 60} {
+		time.Sleep(time.Duration(interval) * time.Second)
+
+		if db, err = sql.Open(driver, uri); err != nil {
+			continue
+		}
+
+		if err := db.Ping(); err != nil {
+			continue
+		}
+
+		break
+	}
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &conn{db}
 }
 
-type adapter struct {
+type conn struct {
 	*sql.DB
 }
 
-func (self *adapter) Begin() (Tx, error) {
+func (self *conn) Begin() (Tx, error) {
 	t, err := self.DB.Begin()
 	if err != nil {
 		return nil, err
@@ -21,16 +47,8 @@ func (self *adapter) Begin() (Tx, error) {
 	return &tx{t}, nil
 }
 
-func (self *adapter) Close() error {
-	return self.DB.Close()
-}
-
 type tx struct {
 	*sql.Tx
-}
-
-func (self *tx) Rollback() error {
-	return self.Tx.Rollback()
 }
 
 func (self *tx) QueryContext(ctx context.Context, stmt string, args ...interface{}) (Rows, error) {
@@ -65,20 +83,8 @@ func (self *tx) Exec(stmt string, args ...interface{}) (Result, error) {
 	return &result{r}, nil
 }
 
-func (self *tx) Commit() error {
-	return self.Tx.Commit()
-}
-
 type rows struct {
 	*sql.Rows
-}
-
-func (self *rows) Err() error {
-	return self.Rows.Err()
-}
-
-func (self *rows) Next() bool {
-	return self.Rows.Next()
 }
 
 func (self *rows) ColumnTypes() ([]ColumnType, error) {
@@ -96,18 +102,6 @@ func (self *rows) ColumnTypes() ([]ColumnType, error) {
 	return types, nil
 }
 
-func (self *rows) Scan(dest ...interface{}) error {
-	return self.Rows.Scan(dest...)
-}
-
-func (self *rows) Close() error {
-	return self.Rows.Close()
-}
-
 type result struct {
 	sql.Result
-}
-
-func (self *result) LastInsertId() (int64, error) {
-	return self.Result.LastInsertId()
 }

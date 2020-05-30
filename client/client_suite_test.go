@@ -15,6 +15,8 @@ import (
 
 	"github.com/reverted/ex"
 	"github.com/reverted/ex/client"
+	"github.com/reverted/ex/client/xhttp"
+	"github.com/reverted/ex/client/xsql"
 	"github.com/reverted/ex/server"
 	"github.com/reverted/logger"
 )
@@ -24,12 +26,18 @@ func TestClient(t *testing.T) {
 	RunSpecs(t, "Client Suite")
 }
 
+type Conn interface {
+	xsql.Connection
+	Close() error
+}
+
 var (
 	db *database
 
 	apiServer *httptest.Server
 	apiClient *http.Client
 
+	sqlConn    Conn
 	sqlClient  client.Client
 	httpClient client.Client
 )
@@ -43,7 +51,18 @@ var _ = BeforeEach(func() {
 
 	db = NewDatabase()
 
-	sqlClient = client.NewMysql(logger, db.Uri())
+	sqlConn = xsql.NewConn("mysql", db.Uri())
+
+	sqlExecutor := xsql.NewExecutor(
+		logger,
+		xsql.WithMysqlFormatter(),
+		xsql.WithConnection(sqlConn),
+	)
+
+	sqlClient = client.New(
+		logger,
+		client.WithExecutor(sqlExecutor),
+	)
 
 	apiServer = httptest.NewServer(server.New(logger, sqlClient))
 	apiClient = apiServer.Client()
@@ -51,13 +70,21 @@ var _ = BeforeEach(func() {
 	target, err := url.Parse(apiServer.URL + "/v1/")
 	Expect(err).NotTo(HaveOccurred())
 
-	httpClient = client.NewHttp(logger, apiClient, target)
+	httpExecutor := xhttp.NewExecutor(
+		logger,
+		xhttp.WithTarget(target),
+		xhttp.WithClient(apiClient),
+	)
+
+	httpClient = client.New(
+		logger,
+		client.WithExecutor(httpExecutor),
+	)
 })
 
 var _ = AfterEach(func() {
 	apiServer.Close()
-	sqlClient.Close()
-	httpClient.Close()
+	sqlConn.Close()
 	db.Close()
 })
 
