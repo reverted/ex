@@ -26,7 +26,7 @@ type Tracer interface {
 }
 
 type Client interface {
-	Exec(ex.Request, ...interface{}) error
+	ExecContext(context.Context, ex.Request, ...interface{}) error
 }
 
 type Parser interface {
@@ -165,7 +165,7 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 	}
 
 	var data []map[string]interface{}
-	if err = self.Client.Exec(ex.Bulk(reqs...), &data); err != nil {
+	if err = self.Client.ExecContext(ctx, ex.Bulk(reqs...), &data); err != nil {
 		return nil, err
 	}
 
