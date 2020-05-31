@@ -16,12 +16,8 @@ type Executor interface {
 	Execute(context.Context, ex.Request, interface{}) (bool, error)
 }
 
-type Span interface {
-	Finish()
-}
-
 type Tracer interface {
-	StartSpan(context.Context, string) (Span, context.Context)
+	StartSpan(context.Context, string, ...ex.SpanTag) (ex.Span, context.Context)
 }
 
 type Client interface {
@@ -47,7 +43,6 @@ func New(logger Logger, opts ...opt) *client {
 
 	client := &client{
 		Logger: logger,
-		Tracer: noopTracer{},
 	}
 
 	for _, opt := range opts {
@@ -91,7 +86,10 @@ func (self *client) execute(ctx context.Context, req ex.Request, data interface{
 
 		self.Logger.Infof(">>> %+v", req)
 
-		if retry, err = self.Executor.Execute(ctx, req, data); !retry {
+		span, spanCtx := self.Tracer.StartSpan(ctx, "exec", ex.SpanTag{"attempt", i})
+		defer span.Finish()
+
+		if retry, err = self.Executor.Execute(spanCtx, req, data); !retry {
 			break
 		}
 
@@ -103,14 +101,4 @@ func (self *client) execute(ctx context.Context, req ex.Request, data interface{
 	}
 
 	return err
-}
-
-type noopSpan struct{}
-
-func (self noopSpan) Finish() {}
-
-type noopTracer struct{}
-
-func (self noopTracer) StartSpan(ctx context.Context, name string) (Span, context.Context) {
-	return noopSpan{}, ctx
 }

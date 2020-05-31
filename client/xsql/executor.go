@@ -14,6 +14,10 @@ type Logger interface {
 	Infof(string, ...interface{})
 }
 
+type Tracer interface {
+	StartSpan(context.Context, string, ...ex.SpanTag) (ex.Span, context.Context)
+}
+
 type Formatter interface {
 	Format(ex.Command) (ex.Statement, error)
 }
@@ -73,6 +77,12 @@ func WithScanner(scanner Scanner) opt {
 	}
 }
 
+func WithTracer(tracer Tracer) opt {
+	return func(self *executor) {
+		self.Tracer = tracer
+	}
+}
+
 func WithConnection(connection Connection) opt {
 	return func(self *executor) {
 		self.Connection = connection
@@ -107,6 +117,7 @@ type executor struct {
 	Formatter
 	Connection
 	Scanner
+	Tracer
 }
 
 func (self *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
@@ -183,7 +194,10 @@ func (self *executor) query(ctx context.Context, tx Tx, cmd ex.Command, data int
 
 	self.Logger.Infof(">>> %v", stmt)
 
-	rows, err := self.queryContext(ctx, tx, stmt)
+	span, spanCtx := self.Tracer.StartSpan(ctx, "query")
+	defer span.Finish()
+
+	rows, err := self.queryContext(spanCtx, tx, stmt)
 	if err != nil {
 		return err
 	}
@@ -202,14 +216,17 @@ func (self *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data in
 
 	self.Logger.Infof(">>> %v", stmt)
 
+	span, spanCtx := self.Tracer.StartSpan(ctx, "delete")
+	defer span.Finish()
+
 	if data != nil {
 		q := ex.Query(cmd.Resource, cmd.Where, cmd.Limit, cmd.Offset)
-		if err := self.query(ctx, tx, q, data); err != nil {
+		if err := self.query(spanCtx, tx, q, data); err != nil {
 			return err
 		}
 	}
 
-	return self.stmt(ctx, tx, stmt)
+	return self.stmt(spanCtx, tx, stmt)
 }
 
 func (self *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
@@ -221,7 +238,10 @@ func (self *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data in
 
 	self.Logger.Infof(">>> %v", stmt)
 
-	res, err := self.execContext(ctx, tx, stmt)
+	span, spanCtx := self.Tracer.StartSpan(ctx, "insert")
+	defer span.Finish()
+
+	res, err := self.execContext(spanCtx, tx, stmt)
 	if err != nil {
 		return err
 	}
@@ -234,7 +254,7 @@ func (self *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data in
 	if data != nil {
 		if id > 0 {
 			q := ex.Query(cmd.Resource, ex.Where{"id": id})
-			return self.query(ctx, tx, q, data)
+			return self.query(spanCtx, tx, q, data)
 		}
 	}
 
@@ -250,7 +270,10 @@ func (self *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data in
 
 	self.Logger.Infof(">>> %v", stmt)
 
-	if err := self.stmt(ctx, tx, stmt); err != nil {
+	span, spanCtx := self.Tracer.StartSpan(ctx, "update")
+	defer span.Finish()
+
+	if err := self.stmt(spanCtx, tx, stmt); err != nil {
 		return err
 	}
 
@@ -263,7 +286,7 @@ func (self *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data in
 		}
 
 		q := ex.Query(cmd.Resource, where, cmd.Limit, cmd.Offset)
-		return self.query(ctx, tx, q, data)
+		return self.query(spanCtx, tx, q, data)
 	}
 
 	return nil
@@ -271,8 +294,11 @@ func (self *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data in
 
 func (self *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data interface{}) error {
 
+	span, spanCtx := self.Tracer.StartSpan(ctx, "batch")
+	defer span.Finish()
+
 	for _, c := range batch.Requests {
-		if err := self.executeTx(ctx, tx, c, data); err != nil {
+		if err := self.executeTx(spanCtx, tx, c, data); err != nil {
 			return err
 		}
 	}
@@ -281,22 +307,26 @@ func (self *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data int
 }
 
 func (self *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement) error {
-	_, err := self.execContext(ctx, tx, stmt)
+
+	span, spanCtx := self.Tracer.StartSpan(ctx, "stmt")
+	defer span.Finish()
+
+	_, err := self.execContext(spanCtx, tx, stmt)
 	return err
 }
 
 func (self *executor) queryContext(ctx context.Context, tx Tx, stmt ex.Statement) (Rows, error) {
-	if ctx != nil {
-		return tx.QueryContext(ctx, stmt.Stmt, stmt.Args...)
-	} else {
-		return tx.Query(stmt.Stmt, stmt.Args...)
-	}
+
+	span, spanCtx := self.Tracer.StartSpan(ctx, "exec", ex.SpanTag{"stmt", stmt.Stmt})
+	defer span.Finish()
+
+	return tx.QueryContext(spanCtx, stmt.Stmt, stmt.Args...)
 }
 
 func (self *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement) (Result, error) {
-	if ctx != nil {
-		return tx.ExecContext(ctx, stmt.Stmt, stmt.Args...)
-	} else {
-		return tx.Exec(stmt.Stmt, stmt.Args...)
-	}
+
+	span, spanCtx := self.Tracer.StartSpan(ctx, "exec", ex.SpanTag{"stmt", stmt.Stmt})
+	defer span.Finish()
+
+	return tx.ExecContext(spanCtx, stmt.Stmt, stmt.Args...)
 }

@@ -14,6 +14,10 @@ type Logger interface {
 	Infof(format string, a ...interface{})
 }
 
+type Tracer interface {
+	InjectSpan(context.Context, *http.Request)
+}
+
 type Formatter interface {
 	Format(ex.Request) (*http.Request, error)
 }
@@ -33,6 +37,12 @@ func WithTarget(target *url.URL) opt {
 func WithFormatter(formatter Formatter) opt {
 	return func(self *executor) {
 		self.Formatter = formatter
+	}
+}
+
+func WithTracer(tracer Tracer) opt {
+	return func(self *executor) {
+		self.Tracer = tracer
 	}
 }
 
@@ -65,6 +75,7 @@ func NewExecutor(logger Logger, opts ...opt) *executor {
 type executor struct {
 	Logger
 	Formatter
+	Tracer
 	Client
 }
 
@@ -81,6 +92,8 @@ func (self *executor) Execute(ctx context.Context, req ex.Request, data interfac
 func (self *executor) exec(ctx context.Context, r *http.Request, data interface{}) (bool, error) {
 
 	self.Logger.Infof(">>> %v", r.URL)
+
+	self.Tracer.InjectSpan(ctx, r)
 
 	resp, err := self.Client.Do(r.WithContext(ctx))
 	if err != nil {

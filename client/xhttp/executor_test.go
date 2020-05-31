@@ -54,6 +54,7 @@ var _ = Describe("Executor", func() {
 			logger,
 			xhttp.WithClient(mockClient),
 			xhttp.WithFormatter(mockFormatter),
+			xhttp.WithTracer(noopTracer{}),
 		)
 	})
 
@@ -174,3 +175,20 @@ var _ = Describe("Executor", func() {
 		})
 	})
 })
+
+type noopSpan struct{}
+
+func (self noopSpan) Finish() {}
+
+type noopTracer struct{}
+
+func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+	return noopSpan{}, ctx
+}
+
+func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+}
+
+func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+	return noopSpan{}, r.Context()
+}

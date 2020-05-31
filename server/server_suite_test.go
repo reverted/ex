@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -41,6 +42,8 @@ var (
 
 var _ = BeforeEach(func() {
 
+	tracer := noopTracer{}
+
 	logger := logger.New("test",
 		logger.Writer(GinkgoWriter),
 		logger.Level(logger.Debug),
@@ -54,14 +57,20 @@ var _ = BeforeEach(func() {
 		logger,
 		xsql.WithMysqlFormatter(),
 		xsql.WithConnection(sqlConn),
+		xsql.WithTracer(tracer),
 	)
 
 	sqlClient = client.New(
 		logger,
 		client.WithExecutor(sqlExecutor),
+		client.WithTracer(tracer),
 	)
 
-	apiServer = httptest.NewServer(server.New(logger, sqlClient))
+	apiServer = httptest.NewServer(server.New(
+		logger,
+		sqlClient,
+		server.WithTracer(tracer)),
+	)
 	apiClient = apiServer.Client()
 })
 
@@ -146,4 +155,21 @@ func randomString() string {
 	randomBytes := make([]byte, 16)
 	rand.Read(randomBytes)
 	return hex.EncodeToString(randomBytes)
+}
+
+type noopSpan struct{}
+
+func (self noopSpan) Finish() {}
+
+type noopTracer struct{}
+
+func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+	return noopSpan{}, ctx
+}
+
+func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+}
+
+func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+	return noopSpan{}, r.Context()
 }

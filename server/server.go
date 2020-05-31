@@ -21,6 +21,10 @@ type Logger interface {
 	Infof(format string, a ...interface{})
 }
 
+type Tracer interface {
+	ExtractSpan(*http.Request, string) (ex.Span, context.Context)
+}
+
 type Client interface {
 	Exec(ex.Request, ...interface{}) error
 }
@@ -40,27 +44,33 @@ type Processor interface {
 type opt func(*server)
 
 func WithParser(parser Parser) opt {
-	return func(s *server) {
-		s.Parser = parser
+	return func(self *server) {
+		self.Parser = parser
+	}
+}
+
+func WithTracer(tracer Tracer) opt {
+	return func(self *server) {
+		self.Tracer = tracer
 	}
 }
 
 func WithInterceptors(interceptors ...Interceptor) opt {
-	return func(s *server) {
-		s.Interceptors = interceptors
+	return func(self *server) {
+		self.Interceptors = interceptors
 	}
 }
 
 func WithProcessors(processors ...Processor) opt {
-	return func(s *server) {
-		s.Processors = processors
+	return func(self *server) {
+		self.Processors = processors
 	}
 }
 
 func WithContextKeys(keys ...string) opt {
-	return func(s *server) {
+	return func(self *server) {
 		for _, key := range keys {
-			s.IncludeKeys[key] = true
+			self.IncludeKeys[key] = true
 		}
 	}
 }
@@ -86,6 +96,7 @@ type server struct {
 	Logger
 	Client
 	Parser
+	Tracer
 	Interceptors []Interceptor
 	Processors   []Processor
 	IncludeKeys  map[string]bool
@@ -95,7 +106,9 @@ func (self *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	self.Logger.Infof("<<< %v : %v", r.Method, r.URL)
 
-	ctx := r.Context()
+	span, ctx := self.Tracer.ExtractSpan(r, "serve")
+	defer span.Finish()
+
 	ctx = context.WithValue(ctx, ctxKeyMethod, r.Method)
 	ctx = context.WithValue(ctx, ctxKeyResource, path.Base(r.URL.Path))
 
@@ -166,22 +179,22 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 	return data, nil
 }
 
+func Intercept(interceptor func(ctx context.Context, cmd ex.Command) (ex.Command, error)) InterceptorFunc {
+	return InterceptorFunc(interceptor)
+}
+
 type InterceptorFunc func(context.Context, ex.Command) (ex.Command, error)
 
 func (self InterceptorFunc) Intercept(ctx context.Context, cmd ex.Command) (ex.Command, error) {
 	return self(ctx, cmd)
 }
 
+func Process(processor func(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error)) ProcessorFunc {
+	return ProcessorFunc(processor)
+}
+
 type ProcessorFunc func(context.Context, []map[string]interface{}) ([]map[string]interface{}, error)
 
 func (self ProcessorFunc) Process(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error) {
 	return self(ctx, res)
-}
-
-func Intercept(interceptor func(ctx context.Context, cmd ex.Command) (ex.Command, error)) InterceptorFunc {
-	return InterceptorFunc(interceptor)
-}
-
-func Process(processor func(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error)) ProcessorFunc {
-	return ProcessorFunc(processor)
 }

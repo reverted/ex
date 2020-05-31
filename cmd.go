@@ -257,3 +257,12 @@ func parseNotBtwn(k, v string) (string, interface{}, error) {
 	}
 	return k, NotBtwn{parts[0], parts[1]}, nil
 }
+
+type Span interface {
+	Finish()
+}
+
+type SpanTag struct {
+	Key   string
+	Value interface{}
+}

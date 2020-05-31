@@ -3,6 +3,7 @@ package xsql_test
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -60,6 +61,7 @@ var _ = Describe("Executor", func() {
 			xsql.WithConnection(mockConnection),
 			xsql.WithFormatter(mockFormatter),
 			xsql.WithScanner(mockScanner),
+			xsql.WithTracer(noopTracer{}),
 		)
 	})
 
@@ -674,3 +676,20 @@ var _ = Describe("Executor", func() {
 		})
 	})
 })
+
+type noopSpan struct{}
+
+func (self noopSpan) Finish() {}
+
+type noopTracer struct{}
+
+func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+	return noopSpan{}, ctx
+}
+
+func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+}
+
+func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+	return noopSpan{}, r.Context()
+}
