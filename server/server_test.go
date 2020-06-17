@@ -101,7 +101,7 @@ var _ = Describe("Server", func() {
 
 					Context("with no 'conflict' resolution", func() {
 						BeforeEach(func() {
-							request.URL.RawQuery = ""
+							request.Header.Del("X-On-Conflict")
 						})
 
 						It("errors", func() {
@@ -111,7 +111,7 @@ var _ = Describe("Server", func() {
 
 					Context("with 'conflict' resolution", func() {
 						BeforeEach(func() {
-							request.URL.RawQuery = ":conflict=name"
+							request.Header.Add("X-On-Conflict", "name")
 						})
 
 						It("succeeds", func() {

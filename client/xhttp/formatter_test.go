@@ -176,12 +176,13 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has conflict", func() {
 			BeforeEach(func() {
-				req = ex.Insert("resources", ex.OnConflictUpdate{"key"})
+				req = ex.Insert("resources", ex.OnConflictUpdate{"key1", "key2"})
 			})
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("POST"))
-				Expect(res.URL.String()).To(Equal("http://some.url/resources?%3Aconflict=key"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-On-Conflict")).To(Equal("key1,key2"))
 			})
 		})
 	})

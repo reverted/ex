@@ -55,15 +55,15 @@ func (self *formatter) FormatCommand(cmd ex.Command) (*http.Request, error) {
 	}
 }
 
-func (self *formatter) FormatQuery(req ex.Command) (*http.Request, error) {
+func (self *formatter) FormatQuery(cmd ex.Command) (*http.Request, error) {
 
-	params, err := self.FormatParams(req)
+	params, err := self.FormatParams(cmd)
 	if err != nil {
 		return nil, err
 	}
 
 	url := *self.URL
-	url.Path = path.Join(url.Path, req.Resource)
+	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
 	return self.FormatHttpRequest("GET", url.String(), nil)
@@ -83,39 +83,51 @@ func (self *formatter) FormatDelete(req ex.Command) (*http.Request, error) {
 	return self.FormatHttpRequest("DELETE", url.String(), nil)
 }
 
-func (self *formatter) FormatInsert(req ex.Command) (*http.Request, error) {
+func (self *formatter) FormatInsert(cmd ex.Command) (*http.Request, error) {
 
-	params, err := self.FormatParams(req)
+	params, err := self.FormatParams(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := self.FormatBody(req.Values)
+	body, err := self.FormatBody(cmd.Values)
 	if err != nil {
 		return nil, err
 	}
 
 	url := *self.URL
-	url.Path = path.Join(url.Path, req.Resource)
+	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
-	return self.FormatHttpRequest("POST", url.String(), bytes.NewBuffer(body))
-}
-
-func (self *formatter) FormatUpdate(req ex.Command) (*http.Request, error) {
-
-	params, err := self.FormatParams(req)
+	r, err := self.FormatHttpRequest("POST", url.String(), bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := self.FormatBody(req.Values)
+	switch c := cmd.OnConflict.(type) {
+	case ex.OnConflictUpdate:
+		if len(c) > 0 {
+			r.Header.Add("X-On-Conflict", strings.Join(c, ","))
+		}
+	}
+
+	return r, nil
+}
+
+func (self *formatter) FormatUpdate(cmd ex.Command) (*http.Request, error) {
+
+	params, err := self.FormatParams(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := self.FormatBody(cmd.Values)
 	if err != nil {
 		return nil, err
 	}
 
 	url := *self.URL
-	url.Path = path.Join(url.Path, req.Resource)
+	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
 	return self.FormatHttpRequest("PUT", url.String(), bytes.NewBuffer(body))
@@ -156,13 +168,6 @@ func (self *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 
 	if cmd.Offset.Arg > 0 {
 		params.Add(":offset", fmt.Sprintf("%v", cmd.Offset.Arg))
-	}
-
-	switch c := cmd.OnConflict.(type) {
-	case ex.OnConflictUpdate:
-		if len(c) > 0 {
-			params.Add(":conflict", strings.Join(c, ","))
-		}
 	}
 
 	return params, nil

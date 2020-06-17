@@ -176,11 +176,11 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has a conflict", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":conflict=key"
+				req.Header.Add("X-On-Conflict", "key1,key2")
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictUpdate{"key"})))
+				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictUpdate{"key1", "key2"})))
 			})
 		})
 	})

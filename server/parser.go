@@ -149,9 +149,9 @@ func (self *parser) ParseOffset(r *http.Request) (ex.Offset, error) {
 }
 
 func (self *parser) ParseConflict(r *http.Request) (ex.OnConflictUpdate, error) {
-	param, ok := r.URL.Query()[":conflict"]
-	if ok {
-		return ex.OnConflictUpdate(strings.Split(param[0], ",")), nil
+	param := r.Header.Get("X-On-Conflict")
+	if len(param) > 0 {
+		return ex.OnConflictUpdate(strings.Split(param, ",")), nil
 	} else {
 		return ex.OnConflictUpdate{}, nil
 	}
