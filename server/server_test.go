@@ -109,9 +109,9 @@ var _ = Describe("Server", func() {
 						})
 					})
 
-					Context("with 'conflict' resolution", func() {
+					Context("with 'conflict update' resolution", func() {
 						BeforeEach(func() {
-							request.Header.Add("X-On-Conflict", "name")
+							request.Header.Add("X-On-Conflict-Update", "name")
 						})
 
 						It("succeeds", func() {
@@ -127,6 +127,46 @@ var _ = Describe("Server", func() {
 						It("contains expected items", func() {
 							Expect(queryResources()).To(ConsistOf(
 								newResource(1, "resource-4"),
+								newResource(2, "resource-2"),
+								newResource(3, "resource-3"),
+							))
+						})
+					})
+
+					Context("with 'conflict ignore' resolution", func() {
+						BeforeEach(func() {
+							request.Header.Add("X-On-Conflict-Ignore", "true")
+						})
+
+						It("succeeds", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("returns new result", func() {
+							Expect(parseResources(response)).To(BeEmpty())
+						})
+
+						It("contains expected items", func() {
+							Expect(queryResources()).To(ConsistOf(
+								newResource(1, "resource-1"),
+								newResource(2, "resource-2"),
+								newResource(3, "resource-3"),
+							))
+						})
+					})
+
+					Context("with 'conflict error' resolution", func() {
+						BeforeEach(func() {
+							request.Header.Add("X-On-Conflict-Error", "true")
+						})
+
+						It("errors", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+
+						It("contains expected items", func() {
+							Expect(queryResources()).To(ConsistOf(
+								newResource(1, "resource-1"),
 								newResource(2, "resource-2"),
 								newResource(3, "resource-3"),
 							))

@@ -252,10 +252,8 @@ func (self *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data in
 	}
 
 	if data != nil {
-		if id > 0 {
-			q := ex.Query(cmd.Resource, ex.Where{"id": id})
-			return self.query(spanCtx, tx, q, data)
-		}
+		q := ex.Query(cmd.Resource, ex.Where{"id": id})
+		return self.query(spanCtx, tx, q, data)
 	}
 
 	return nil

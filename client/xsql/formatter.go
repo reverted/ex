@@ -172,14 +172,19 @@ func (self *mysqlFormatter) FormatOffset(offset ex.Offset) string {
 
 func (self *mysqlFormatter) FormatConflict(conflict ex.OnConflict) string {
 
-	switch c := conflict.(type) {
-
-	case ex.OnConflictUpdate:
+	if c := conflict.Update; len(c) > 0 {
 		return self.FormatConflictUpdate(c)
-
-	default:
-		return ""
 	}
+
+	if c := conflict.Ignore; c != "" {
+		return self.FormatConflictIgnore(c)
+	}
+
+	if c := conflict.Error; c != "" {
+		return self.FormatConflictError(c)
+	}
+
+	return ""
 }
 
 func (self *mysqlFormatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) string {
@@ -194,6 +199,20 @@ func (self *mysqlFormatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) s
 	} else {
 		return ""
 	}
+}
+
+func (self *mysqlFormatter) FormatConflictIgnore(conflict ex.OnConflictIgnore) string {
+
+	if conflict == "true" {
+		return fmt.Sprintf("DUPLICATE KEY UPDATE id = id")
+	} else {
+		return fmt.Sprintf("DUPLICATE KEY UPDATE %s = %s", conflict, conflict)
+	}
+}
+
+func (self *mysqlFormatter) FormatConflictError(conflict ex.OnConflictError) string {
+
+	return ""
 }
 
 func (self *mysqlFormatter) FormatWhere(where ex.Where) (string, []interface{}) {

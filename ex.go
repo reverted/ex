@@ -58,7 +58,7 @@ func cmd(action, resource string, opts ...opt) Command {
 		Order:      Order{},
 		Limit:      Limit{},
 		Offset:     Offset{},
-		OnConflict: OnConflictUpdate{},
+		OnConflict: OnConflict{},
 	}
 
 	for _, opt := range opts {
@@ -102,24 +102,32 @@ func (self Offset) opt(cmd *Command) {
 	cmd.Offset = self
 }
 
-type OnConflict interface{}
+type OnConflict struct {
+	Update OnConflictUpdate
+	Ignore OnConflictIgnore
+	Error  OnConflictError
+}
+
+func (self OnConflict) opt(cmd *Command) {
+	cmd.OnConflict = self
+}
 
 type OnConflictUpdate []string
 
 func (self OnConflictUpdate) opt(cmd *Command) {
-	cmd.OnConflict = self
+	cmd.OnConflict.Update = self
 }
 
-type OnConflictIgnore struct{}
+type OnConflictIgnore string
 
 func (self OnConflictIgnore) opt(cmd *Command) {
-	cmd.OnConflict = self
+	cmd.OnConflict.Ignore = self
 }
 
-type OnConflictError struct{}
+type OnConflictError string
 
 func (self OnConflictError) opt(cmd *Command) {
-	cmd.OnConflict = self
+	cmd.OnConflict.Error = self
 }
 
 type Eq struct {

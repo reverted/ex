@@ -57,11 +57,16 @@ func (self Command) MarshalJSON() ([]byte, error) {
 		"offset":   self.Offset.Arg,
 	}
 
-	switch c := self.OnConflict.(type) {
-	case OnConflictUpdate:
-		if len(c) > 0 {
-			fields["on_conflict"] = strings.Join(c, ",")
-		}
+	if c := self.OnConflict.Update; len(c) > 0 {
+		fields["on_conflict_update"] = strings.Join(c, ",")
+	}
+
+	if c := self.OnConflict.Ignore; c != "" {
+		fields["on_conflict_ignore"] = c
+	}
+
+	if c := self.OnConflict.Error; c != "" {
+		fields["on_conflict_error"] = c
 	}
 
 	return json.Marshal(fields)
@@ -101,9 +106,19 @@ func (self *Command) UnmarshalJSON(b []byte) error {
 		opts = append(opts, Offset{offset})
 	}
 
-	conflict, ok := contents["on_conflict"].(string)
+	conflictUpdate, ok := contents["on_conflict_update"].(string)
 	if ok {
-		opts = append(opts, OnConflictUpdate(strings.Split(conflict, ",")))
+		opts = append(opts, OnConflictUpdate(strings.Split(conflictUpdate, ",")))
+	}
+
+	conflictIgnore, ok := contents["on_conflict_ignore"].(string)
+	if ok {
+		opts = append(opts, OnConflictIgnore(conflictIgnore))
+	}
+
+	conflictError, ok := contents["on_conflict_error"].(string)
+	if ok {
+		opts = append(opts, OnConflictError(conflictError))
 	}
 
 	c := cmd(

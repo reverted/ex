@@ -174,7 +174,7 @@ var _ = Describe("Formatter", func() {
 			})
 		})
 
-		Context("when the request has conflict", func() {
+		Context("when the request has conflict update", func() {
 			BeforeEach(func() {
 				req = ex.Insert("resources", ex.OnConflictUpdate{"key1", "key2"})
 			})
@@ -182,7 +182,31 @@ var _ = Describe("Formatter", func() {
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("POST"))
 				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
-				Expect(res.Header.Get("X-On-Conflict")).To(Equal("key1,key2"))
+				Expect(res.Header.Get("X-On-Conflict-Update")).To(Equal("key1,key2"))
+			})
+		})
+
+		Context("when the request has conflict ignore", func() {
+			BeforeEach(func() {
+				req = ex.Insert("resources", ex.OnConflictIgnore("true"))
+			})
+
+			It("formats the request", func() {
+				Expect(res.Method).To(Equal("POST"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-On-Conflict-Ignore")).To(Equal("true"))
+			})
+		})
+
+		Context("when the request has conflict error", func() {
+			BeforeEach(func() {
+				req = ex.Insert("resources", ex.OnConflictError("true"))
+			})
+
+			It("formats the request", func() {
+				Expect(res.Method).To(Equal("POST"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-On-Conflict-Error")).To(Equal("true"))
 			})
 		})
 	})

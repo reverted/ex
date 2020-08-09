@@ -104,11 +104,16 @@ func (self *formatter) FormatInsert(cmd ex.Command) (*http.Request, error) {
 		return nil, err
 	}
 
-	switch c := cmd.OnConflict.(type) {
-	case ex.OnConflictUpdate:
-		if len(c) > 0 {
-			r.Header.Add("X-On-Conflict", strings.Join(c, ","))
-		}
+	if c := cmd.OnConflict.Update; len(c) > 0 {
+		r.Header.Add("X-On-Conflict-Update", strings.Join(c, ","))
+	}
+
+	if c := cmd.OnConflict.Ignore; c != "" {
+		r.Header.Add("X-On-Conflict-Ignore", fmt.Sprintf("%v", c))
+	}
+
+	if c := cmd.OnConflict.Error; c != "" {
+		r.Header.Add("X-On-Conflict-Error", fmt.Sprintf("%v", c))
 	}
 
 	return r, nil

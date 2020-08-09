@@ -144,33 +144,53 @@ var _ = Describe("Formatter", func() {
 		BeforeEach(func() {
 			cmd = ex.Insert("resources",
 				ex.Values{"key": "value"},
-				ex.OnConflictUpdate{"key"},
 			)
 		})
 
 		It("formats the command", func() {
-			Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ? ON DUPLICATE KEY UPDATE key = VALUES(key)"))
+			Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
 			Expect(stmt.Args).To(ConsistOf("value"))
 		})
 
-		Context("when the command has values", func() {
+		Context("when the command has conflict update", func() {
 			BeforeEach(func() {
-				cmd = ex.Insert("resources", ex.Values{"key": "value"})
+				cmd = ex.Insert("resources",
+					ex.Values{"key": "value"},
+					ex.OnConflictUpdate{"key"},
+				)
+			})
+
+			It("formats the command", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ? ON DUPLICATE KEY UPDATE key = VALUES(key)"))
+				Expect(stmt.Args).To(ConsistOf("value"))
+			})
+		})
+
+		Context("when the command has conflict ignore", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": "value"},
+					ex.OnConflictIgnore("true"),
+				)
+			})
+
+			It("formats the command", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ? ON DUPLICATE KEY UPDATE id = id"))
+				Expect(stmt.Args).To(ConsistOf("value"))
+			})
+		})
+
+		Context("when the command has conflict error", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": "value"},
+					ex.OnConflictError("true"),
+				)
 			})
 
 			It("formats the command", func() {
 				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
 				Expect(stmt.Args).To(ConsistOf("value"))
-			})
-		})
-
-		Context("when the command has conflict", func() {
-			BeforeEach(func() {
-				cmd = ex.Insert("resources", ex.OnConflictUpdate{"key"})
-			})
-
-			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources ON DUPLICATE KEY UPDATE key = VALUES(key)"))
 			})
 		})
 	})

@@ -148,13 +148,22 @@ func (self *parser) ParseOffset(r *http.Request) (ex.Offset, error) {
 	}
 }
 
-func (self *parser) ParseConflict(r *http.Request) (ex.OnConflictUpdate, error) {
-	param := r.Header.Get("X-On-Conflict")
-	if len(param) > 0 {
-		return ex.OnConflictUpdate(strings.Split(param, ",")), nil
-	} else {
-		return ex.OnConflictUpdate{}, nil
+func (self *parser) ParseConflict(r *http.Request) (ex.OnConflict, error) {
+	conflict := ex.OnConflict{}
+
+	if param := r.Header.Get("X-On-Conflict-Update"); len(param) > 0 {
+		conflict.Update = ex.OnConflictUpdate(strings.Split(param, ","))
 	}
+
+	if param := r.Header.Get("X-On-Conflict-Ignore"); len(param) > 0 {
+		conflict.Ignore = ex.OnConflictIgnore(param)
+	}
+
+	if param := r.Header.Get("X-On-Conflict-Error"); len(param) > 0 {
+		conflict.Error = ex.OnConflictError(param)
+	}
+
+	return conflict, nil
 }
 
 func (self *parser) ParseWhere(r *http.Request) (ex.Where, error) {

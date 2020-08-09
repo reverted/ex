@@ -80,7 +80,7 @@ var _ = Describe("Client", func() {
 						})
 					})
 
-					Context("inserting a conflicting record", func() {
+					Context("inserting a record with conflict update", func() {
 						BeforeEach(func() {
 							req = ex.Insert("resources", ex.Values{"id": 1, "name": "resource-4"}, ex.OnConflictUpdate{"name"})
 						})
@@ -98,6 +98,46 @@ var _ = Describe("Client", func() {
 						It("contains expected items", func() {
 							Expect(queryResources()).To(ConsistOf(
 								newResource(1, "resource-4"),
+								newResource(2, "resource-2"),
+								newResource(3, "resource-3"),
+							))
+						})
+					})
+
+					Context("inserting a record with conflict ignore", func() {
+						BeforeEach(func() {
+							req = ex.Insert("resources", ex.Values{"id": 3, "name": "resource-4"}, ex.OnConflictIgnore("id"))
+						})
+
+						It("succeeds", func() {
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("returns new result", func() {
+							Expect(items).To(BeEmpty())
+						})
+
+						It("contains expected items", func() {
+							Expect(queryResources()).To(ConsistOf(
+								newResource(1, "resource-1"),
+								newResource(2, "resource-2"),
+								newResource(3, "resource-3"),
+							))
+						})
+					})
+
+					Context("inserting a record with conflict error", func() {
+						BeforeEach(func() {
+							req = ex.Insert("resources", ex.Values{"id": 1, "name": "resource-4"}, ex.OnConflictError("true"))
+						})
+
+						It("fails", func() {
+							Expect(err).To(HaveOccurred())
+						})
+
+						It("contains expected items", func() {
+							Expect(queryResources()).To(ConsistOf(
+								newResource(1, "resource-1"),
 								newResource(2, "resource-2"),
 								newResource(3, "resource-3"),
 							))

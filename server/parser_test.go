@@ -174,13 +174,33 @@ var _ = Describe("Parser", func() {
 			})
 		})
 
-		Context("when the request has a conflict", func() {
+		Context("when the request has a conflict update", func() {
 			BeforeEach(func() {
-				req.Header.Add("X-On-Conflict", "key1,key2")
+				req.Header.Add("X-On-Conflict-Update", "key1,key2")
 			})
 
 			It("parses the request", func() {
 				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictUpdate{"key1", "key2"})))
+			})
+		})
+
+		Context("when the request has a conflict ignore", func() {
+			BeforeEach(func() {
+				req.Header.Add("X-On-Conflict-Ignore", "true")
+			})
+
+			It("parses the request", func() {
+				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictIgnore("true"))))
+			})
+		})
+
+		Context("when the request has a conflict error", func() {
+			BeforeEach(func() {
+				req.Header.Add("X-On-Conflict-Error", "true")
+			})
+
+			It("parses the request", func() {
+				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictError("true"))))
 			})
 		})
 	})
