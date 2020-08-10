@@ -36,7 +36,7 @@ func (self *scanner) Scan(rows Rows, data interface{}) error {
 		v = v.Elem()
 	}
 
-	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+	if t.Kind() == reflect.Slice {
 		return self.queryRows(rows, t, v)
 	} else {
 		return self.queryRow(rows, t, v)
@@ -55,20 +55,10 @@ func (self *scanner) queryRows(rows Rows, t reflect.Type, v reflect.Value) error
 	v.Set(reflect.Indirect(empty))
 
 	for rows.Next() {
-		var instance interface{}
-
-		switch e.Kind() {
-		case reflect.Map:
-			instance = reflect.MakeMap(e).Interface()
-		default:
-			instance = reflect.New(e).Interface()
-		}
-
-		if err := self.scanRow(rows, instance); err != nil {
+		val, err := self.scanInstance(rows, e)
+		if err != nil {
 			return err
 		}
-
-		val := reflect.ValueOf(instance)
 
 		if t.Elem().Kind() != reflect.Ptr {
 			val = reflect.Indirect(val)
@@ -87,20 +77,10 @@ func (self *scanner) queryRows(rows Rows, t reflect.Type, v reflect.Value) error
 func (self *scanner) queryRow(rows Rows, t reflect.Type, v reflect.Value) error {
 
 	if rows.Next() {
-		var instance interface{}
-
-		switch t.Kind() {
-		case reflect.Map:
-			instance = reflect.MakeMap(t).Interface()
-		default:
-			instance = reflect.New(t).Interface()
-		}
-
-		if err := self.scanRow(rows, instance); err != nil {
+		val, err := self.scanInstance(rows, t)
+		if err != nil {
 			return err
 		}
-
-		val := reflect.ValueOf(instance)
 
 		if t.Kind() != reflect.Ptr {
 			val = reflect.Indirect(val)
@@ -122,6 +102,23 @@ func (self *scanner) queryRow(rows Rows, t reflect.Type, v reflect.Value) error 
 	}
 
 	return nil
+}
+
+func (self *scanner) scanInstance(rows Rows, t reflect.Type) (reflect.Value, error) {
+	var instance interface{}
+
+	switch t.Kind() {
+	case reflect.Map:
+		instance = reflect.MakeMap(t).Interface()
+	default:
+		instance = reflect.New(t).Interface()
+	}
+
+	if err := self.scanRow(rows, instance); err != nil {
+		return reflect.Value{}, err
+	}
+
+	return reflect.ValueOf(instance), nil
 }
 
 func (self *scanner) scanRow(rows Rows, instance interface{}) error {

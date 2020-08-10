@@ -246,12 +246,16 @@ func (self *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data in
 		return err
 	}
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		return err
-	}
-
 	if data != nil {
+		id, err := res.LastInsertId()
+		if err != nil {
+			return err
+		}
+
+		if id == 0 {
+			return self.Scanner.Scan(emptyRows{}, data)
+		}
+
 		q := ex.Query(cmd.Resource, ex.Where{"id": id})
 		return self.query(spanCtx, tx, q, data)
 	}
