@@ -3,6 +3,7 @@ package xsql
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -180,8 +181,11 @@ func (self *scanner) scanValue(value interface{}, dbTypeName string) interface{}
 	case sql.NullString:
 		return v.String
 
+	case sql.NullInt32:
+		return int(v.Int32)
+
 	case sql.NullInt64:
-		return v.Int64
+		return int(v.Int64)
 
 	case sql.NullFloat64:
 		return v.Float64
@@ -240,6 +244,11 @@ func (self *scanner) scanString(value string) interface{} {
 
 func (self *scanner) scanTags(rows Rows, item interface{}) error {
 
+	scanned := map[string]interface{}{}
+	if err := self.scanMap(rows, scanned); err != nil {
+		return err
+	}
+
 	t := reflect.TypeOf(item)
 	v := reflect.ValueOf(item)
 
@@ -248,48 +257,43 @@ func (self *scanner) scanTags(rows Rows, item interface{}) error {
 		v = v.Elem()
 	}
 
-	types, err := rows.ColumnTypes()
-	if err != nil {
-		return err
+	if len(scanned) != t.NumField() {
+		return fmt.Errorf("field length mismatch (%v, %v)", len(scanned), t.NumField())
 	}
 
-	if len(types) != t.NumField() {
-		return errors.New("Invalid field length")
-	}
-
-	fields := self.fields(t, v)
-	values := make([]interface{}, len(types))
-
-	for i, typ := range types {
-		instance, ok := fields[typ.Name()]
-		if !ok {
-			return errors.New("Tag not found")
-		}
-
-		values[i] = instance
-	}
-
-	if err := rows.Scan(values...); err != nil {
-		return err
-	}
-
-	return nil
+	return self.assignFields(t, v, scanned)
 }
 
-func (self *scanner) fields(t reflect.Type, v reflect.Value) map[string]interface{} {
-
-	fields := map[string]interface{}{}
+func (self *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[string]interface{}) error {
 
 	for i := 0; i < t.NumField(); i++ {
 		tf := t.Field(i)
 		vf := v.Field(i)
 
-		if vf.Kind() != reflect.Ptr {
-			vf = vf.Addr()
+		for vf.Kind() == reflect.Ptr {
+			vf = vf.Elem()
 		}
 
-		fields[tf.Tag.Get("json")] = vf.Interface()
+		tag := tf.Tag.Get("json")
+
+		item, ok := scanned[tag]
+		if !ok {
+			return fmt.Errorf("field not found: %s", tag)
+		}
+
+		ts := reflect.TypeOf(item)
+		vs := reflect.ValueOf(item)
+
+		if !vf.CanSet() {
+			return fmt.Errorf("cannot set field: %s", tag)
+		}
+
+		if !ts.AssignableTo(tf.Type) {
+			return fmt.Errorf("field type mismatch: %s (%v, %v)", tag, ts, tf.Type)
+		}
+
+		vf.Set(vs)
 	}
 
-	return fields
+	return nil
 }

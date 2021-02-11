@@ -183,8 +183,40 @@ var _ = Describe("Scanner", func() {
 				}, nil)
 			})
 
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
+			Context("when scanning fails", func() {
+				BeforeEach(func() {
+					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("nope"))
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when scanning succeeds", func() {
+				BeforeEach(func() {
+					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				})
+
+				Context("when rows fails", func() {
+					BeforeEach(func() {
+						mockRows.EXPECT().Err().Return(errors.New("nope"))
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				Context("when rows succeeds", func() {
+					BeforeEach(func() {
+						mockRows.EXPECT().Err().Return(nil)
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
 			})
 		})
 
@@ -196,8 +228,129 @@ var _ = Describe("Scanner", func() {
 				}, nil)
 			})
 
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
+			Context("when scanning fails", func() {
+				BeforeEach(func() {
+					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(errors.New("nope"))
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when scanning succeeds", func() {
+				BeforeEach(func() {
+					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(nil)
+				})
+
+				Context("when rows fails", func() {
+					BeforeEach(func() {
+						mockRows.EXPECT().Err().Return(errors.New("nope"))
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				Context("when rows succeeds", func() {
+					BeforeEach(func() {
+						mockRows.EXPECT().Err().Return(nil)
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+			})
+		})
+
+		Context("when column is missing", func() {
+			BeforeEach(func() {
+				mockRows.EXPECT().ColumnTypes().Return([]xsql.ColumnType{
+					column{"key1", reflect.TypeOf(sql.NullString{}), "TEXT"},
+				}, nil)
+			})
+
+			Context("when scanning fails", func() {
+				BeforeEach(func() {
+					mockRows.EXPECT().Scan(gomock.Any()).Return(errors.New("nope"))
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when scanning succeeds", func() {
+				BeforeEach(func() {
+					mockRows.EXPECT().Scan(gomock.Any()).Return(nil)
+				})
+
+				Context("when rows fails", func() {
+					BeforeEach(func() {
+						mockRows.EXPECT().Err().Return(errors.New("nope"))
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				Context("when rows succeeds", func() {
+					BeforeEach(func() {
+						mockRows.EXPECT().Err().Return(nil)
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+			})
+		})
+
+		Context("when columns have type mismatch", func() {
+			BeforeEach(func() {
+				mockRows.EXPECT().ColumnTypes().Return([]xsql.ColumnType{
+					column{"key1", reflect.TypeOf(sql.NullString{}), "TEXT"},
+					column{"key2", reflect.TypeOf(sql.NullInt64{}), "DECIMAL"},
+				}, nil)
+			})
+
+			Context("when scanning fails", func() {
+				BeforeEach(func() {
+					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(errors.New("nope"))
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when scanning succeeds", func() {
+				BeforeEach(func() {
+					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(nil)
+				})
+
+				Context("when rows fails", func() {
+					BeforeEach(func() {
+						mockRows.EXPECT().Err().Return(errors.New("nope"))
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				Context("when rows succeeds", func() {
+					BeforeEach(func() {
+						mockRows.EXPECT().Err().Return(nil)
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
 			})
 		})
 
@@ -224,7 +377,7 @@ var _ = Describe("Scanner", func() {
 					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(nil)
 				})
 
-				Context("when rows errors", func() {
+				Context("when rows fails", func() {
 					BeforeEach(func() {
 						mockRows.EXPECT().Err().Return(errors.New("nope"))
 					})
@@ -234,7 +387,7 @@ var _ = Describe("Scanner", func() {
 					})
 				})
 
-				Context("when rows does not error", func() {
+				Context("when rows succeeds", func() {
 					BeforeEach(func() {
 						mockRows.EXPECT().Err().Return(nil)
 					})
