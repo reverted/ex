@@ -38,80 +38,15 @@ func (self *formatter) Format(req ex.Request) (*http.Request, error) {
 func (self *formatter) FormatCommand(cmd ex.Command) (*http.Request, error) {
 
 	switch strings.ToUpper(cmd.Action) {
-	case "QUERY":
-		return self.FormatQuery(cmd)
-
-	case "DELETE":
-		return self.FormatDelete(cmd)
-
-	case "INSERT":
-		return self.FormatInsert(cmd)
-
-	case "UPDATE":
-		return self.FormatUpdate(cmd)
+	case "QUERY", "DELETE", "INSERT", "UPDATE":
+		return self.FormatRequest(cmd)
 
 	default:
 		return nil, errors.New("Unsupported cmd")
 	}
 }
 
-func (self *formatter) FormatQuery(cmd ex.Command) (*http.Request, error) {
-
-	params, err := self.FormatParams(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	url := *self.URL
-	url.Path = path.Join(url.Path, cmd.Resource)
-	url.RawQuery = params.Encode()
-
-	r, err := self.FormatHttpRequest("GET", url.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	headers, err := self.FormatHeaders(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	for name, value := range headers {
-		r.Header.Add(name, value)
-	}
-
-	return r, nil
-}
-
-func (self *formatter) FormatDelete(cmd ex.Command) (*http.Request, error) {
-
-	params, err := self.FormatParams(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	url := *self.URL
-	url.Path = path.Join(url.Path, cmd.Resource)
-	url.RawQuery = params.Encode()
-
-	r, err := self.FormatHttpRequest("DELETE", url.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	headers, err := self.FormatHeaders(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	for name, value := range headers {
-		r.Header.Add(name, value)
-	}
-
-	return r, nil
-}
-
-func (self *formatter) FormatInsert(cmd ex.Command) (*http.Request, error) {
+func (self *formatter) FormatRequest(cmd ex.Command) (*http.Request, error) {
 
 	params, err := self.FormatParams(cmd)
 	if err != nil {
@@ -127,40 +62,7 @@ func (self *formatter) FormatInsert(cmd ex.Command) (*http.Request, error) {
 	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
-	r, err := self.FormatHttpRequest("POST", url.String(), bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-
-	headers, err := self.FormatHeaders(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	for name, value := range headers {
-		r.Header.Add(name, value)
-	}
-
-	return r, nil
-}
-
-func (self *formatter) FormatUpdate(cmd ex.Command) (*http.Request, error) {
-
-	params, err := self.FormatParams(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := self.FormatBody(cmd.Values)
-	if err != nil {
-		return nil, err
-	}
-
-	url := *self.URL
-	url.Path = path.Join(url.Path, cmd.Resource)
-	url.RawQuery = params.Encode()
-
-	r, err := self.FormatHttpRequest("PUT", url.String(), bytes.NewBuffer(body))
+	r, err := self.FormatHttpRequest(methods[cmd.Action], url.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +89,7 @@ func (self *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
 	url := *self.URL
 	url.Path = path.Join(url.Path, ":batch")
 
-	return self.FormatHttpRequest("POST", url.String(), bytes.NewBuffer(body))
+	return self.FormatHttpRequest("POST", url.String(), body)
 }
 
 func (self *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
@@ -235,12 +137,24 @@ func (self *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) 
 	return res, nil
 }
 
-func (self *formatter) FormatBody(values interface{}) ([]byte, error) {
+func (self *formatter) FormatBody(values interface{}) (*bytes.Buffer, error) {
 
-	return json.Marshal(values)
+	content, err := json.Marshal(values)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewBuffer(content), nil
 }
 
 func (self *formatter) FormatHttpRequest(method, url string, body io.Reader) (*http.Request, error) {
 
 	return http.NewRequest(method, url, body)
+}
+
+var methods = map[string]string{
+	"QUERY":  "GET",
+	"DELETE": "DELETE",
+	"INSERT": "POST",
+	"UPDATE": "PUT",
 }
