@@ -120,18 +120,16 @@ func (self *parser) ParseValues(r *http.Request) (ex.Values, error) {
 }
 
 func (self *parser) ParseOrder(r *http.Request) (ex.Order, error) {
-	param, ok := r.URL.Query()[":order"]
-	if ok {
-		return ex.Order(strings.Split(param[0], ",")), nil
+	if param := r.Header.Get("X-Order-By"); len(param) > 0 {
+		return ex.Order(strings.Split(param, ",")), nil
 	} else {
 		return ex.Order{}, nil
 	}
 }
 
 func (self *parser) ParseLimit(r *http.Request) (ex.Limit, error) {
-	param, ok := r.URL.Query()[":limit"]
-	if ok {
-		limit, err := strconv.Atoi(param[0])
+	if param := r.Header.Get("X-Limit"); len(param) > 0 {
+		limit, err := strconv.Atoi(param)
 		return ex.Limit{limit}, err
 	} else {
 		return ex.Limit{}, nil
@@ -139,9 +137,8 @@ func (self *parser) ParseLimit(r *http.Request) (ex.Limit, error) {
 }
 
 func (self *parser) ParseOffset(r *http.Request) (ex.Offset, error) {
-	param, ok := r.URL.Query()[":offset"]
-	if ok {
-		offset, err := strconv.Atoi(param[0])
+	if param := r.Header.Get("X-Offset"); len(param) > 0 {
+		offset, err := strconv.Atoi(param)
 		return ex.Offset{offset}, err
 	} else {
 		return ex.Offset{}, nil
@@ -171,10 +168,6 @@ func (self *parser) ParseWhere(r *http.Request) (ex.Where, error) {
 	where := ex.Where{}
 
 	for k, v := range r.URL.Query() {
-		if strings.HasPrefix(k, ":") {
-			continue
-		}
-
 		key, value, err := ex.Parse(k, v[0])
 		if err != nil {
 			return nil, err

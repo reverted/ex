@@ -64,7 +64,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has order", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":order=name"
+				req.Header.Add("X-Order-By", "name")
 			})
 
 			It("parses the request", func() {
@@ -74,7 +74,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":limit=1"
+				req.Header.Add("X-Limit", "1")
 			})
 
 			It("parses the request", func() {
@@ -84,7 +84,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has an invalid limit", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":limit=value"
+				req.Header.Add("X-Limit", "value")
 			})
 
 			It("errors", func() {
@@ -94,7 +94,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has offset", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":offset=10"
+				req.Header.Add("X-Offset", "10")
 			})
 
 			It("parses the request", func() {
@@ -104,7 +104,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has an invalid offset", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":offset=value"
+				req.Header.Add("X-Offset", "value")
 			})
 
 			It("errors", func() {
@@ -130,7 +130,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has order", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":order=name"
+				req.Header.Add("X-Order-By", "name")
 			})
 
 			It("parses the request", func() {
@@ -140,7 +140,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":limit=1"
+				req.Header.Add("X-Limit", "1")
 			})
 
 			It("parses the request", func() {
@@ -150,7 +150,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has an invalid limit", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":limit=value"
+				req.Header.Add("X-Limit", "value")
 			})
 
 			It("errors", func() {
@@ -234,7 +234,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has order", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":order=name"
+				req.Header.Add("X-Order-By", "name")
 			})
 
 			It("parses the request", func() {
@@ -244,7 +244,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":limit=1"
+				req.Header.Add("X-Limit", "1")
 			})
 
 			It("parses the request", func() {
@@ -254,7 +254,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has an invalid limit", func() {
 			BeforeEach(func() {
-				req.URL.RawQuery = ":limit=value"
+				req.Header.Add("X-Limit", "value")
 			})
 
 			It("errors", func() {

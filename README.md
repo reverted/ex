@@ -122,13 +122,13 @@ curl -X GET 'http://api.some.host/v1/resources?id=10'
 curl -X GET 'http://api.some.host/v1/resources?id:in=10,20,30,40'
 curl -X GET 'http://api.some.host/v1/resources?id:btwn=10,100'
 curl -X GET 'http://api.some.host/v1/resources?name:like=my-name'
-curl -X GET 'http://api.some.host/v1/resources?:order=name,id'
-curl -X GET 'http://api.some.host/v1/resources?:limit=100&:offset=100'
+curl -X GET 'http://api.some.host/v1/resources' -H "X-Order-By: name,id"
+curl -X GET 'http://api.some.host/v1/resources' -H "X-Limit: 100" -H "X-Offset: 100"
 
 curl -X DELETE 'http://api.some.host/v1/resources'
 curl -X DELETE 'http://api.some.host/v1/resources?id=10'
 curl -X DELETE 'http://api.some.host/v1/resources?id:gt=10'
-curl -X DELETE 'http://api.some.host/v1/resources?id:gt=10&:limit=1'
+curl -X DELETE 'http://api.some.host/v1/resources?id:gt=10' -H "X-Limit: 1"
 
 curl -X PUT 'http://api.some.host/v1/resources' -d '{"name": "all-names"}'
 curl -X PUT 'http://api.some.host/v1/resources?id=10' -d '{"name": "new-name"}'
@@ -156,15 +156,16 @@ curl -X POST 'http://api.some.host/v1/resources' -d '{"name": "my-name"}'
 | `not_btwn` | id:not_btwn=10,20 |
 
 
-##### reserved params
+##### headers
 
-The server will skip any params prefixed with `:`.
-
-| filter | example |
+| header | value |
 | :---: | :---: |
-| `:order` | :order=name,id |
-| `:limit` | :limit=10 |
-| `:offset` | :offset=5 |
+| `X-Order-By` | <column_list> |
+| `X-Limit` | <int> |
+| `X-Offset` | <int> |
+| `X-On-Conflict-Update` | <column_list> |
+| `X-On-Conflict-Ignore` | <bool> |
+| `X-On-Conflict-Error` | <bool> |
 
 
 #### batch requests (TODO)

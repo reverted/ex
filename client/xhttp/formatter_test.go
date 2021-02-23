@@ -81,7 +81,8 @@ var _ = Describe("Formatter", func() {
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("GET"))
-				Expect(res.URL.String()).To(Equal("http://some.url/resources?%3Aorder=key"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Order-By")).To(Equal("key"))
 			})
 		})
 
@@ -92,7 +93,8 @@ var _ = Describe("Formatter", func() {
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("GET"))
-				Expect(res.URL.String()).To(Equal("http://some.url/resources?%3Alimit=1"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Limit")).To(Equal("1"))
 			})
 		})
 
@@ -103,7 +105,8 @@ var _ = Describe("Formatter", func() {
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("GET"))
-				Expect(res.URL.String()).To(Equal("http://some.url/resources?%3Aoffset=10"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Offset")).To(Equal("10"))
 			})
 		})
 	})
@@ -136,7 +139,8 @@ var _ = Describe("Formatter", func() {
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("DELETE"))
-				Expect(res.URL.String()).To(Equal("http://some.url/resources?%3Aorder=key"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Order-By")).To(Equal("key"))
 			})
 		})
 
@@ -147,7 +151,8 @@ var _ = Describe("Formatter", func() {
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("DELETE"))
-				Expect(res.URL.String()).To(Equal("http://some.url/resources?%3Alimit=1"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Limit")).To(Equal("1"))
 			})
 		})
 	})
@@ -251,7 +256,8 @@ var _ = Describe("Formatter", func() {
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("PUT"))
-				Expect(res.URL.String()).To(Equal("http://some.url/resources?%3Aorder=key"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Order-By")).To(Equal("key"))
 			})
 		})
 
@@ -262,7 +268,8 @@ var _ = Describe("Formatter", func() {
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("PUT"))
-				Expect(res.URL.String()).To(Equal("http://some.url/resources?%3Alimit=1"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Limit")).To(Equal("1"))
 			})
 		})
 	})

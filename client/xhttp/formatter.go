@@ -66,21 +66,49 @@ func (self *formatter) FormatQuery(cmd ex.Command) (*http.Request, error) {
 	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
-	return self.FormatHttpRequest("GET", url.String(), nil)
+	r, err := self.FormatHttpRequest("GET", url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	headers, err := self.FormatHeaders(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	for name, value := range headers {
+		r.Header.Add(name, value)
+	}
+
+	return r, nil
 }
 
-func (self *formatter) FormatDelete(req ex.Command) (*http.Request, error) {
+func (self *formatter) FormatDelete(cmd ex.Command) (*http.Request, error) {
 
-	params, err := self.FormatParams(req)
+	params, err := self.FormatParams(cmd)
 	if err != nil {
 		return nil, err
 	}
 
 	url := *self.URL
-	url.Path = path.Join(url.Path, req.Resource)
+	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
-	return self.FormatHttpRequest("DELETE", url.String(), nil)
+	r, err := self.FormatHttpRequest("DELETE", url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	headers, err := self.FormatHeaders(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	for name, value := range headers {
+		r.Header.Add(name, value)
+	}
+
+	return r, nil
 }
 
 func (self *formatter) FormatInsert(cmd ex.Command) (*http.Request, error) {
@@ -104,16 +132,13 @@ func (self *formatter) FormatInsert(cmd ex.Command) (*http.Request, error) {
 		return nil, err
 	}
 
-	if c := cmd.OnConflict.Update; len(c) > 0 {
-		r.Header.Add("X-On-Conflict-Update", strings.Join(c, ","))
+	headers, err := self.FormatHeaders(cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	if c := cmd.OnConflict.Ignore; c != "" {
-		r.Header.Add("X-On-Conflict-Ignore", fmt.Sprintf("%v", c))
-	}
-
-	if c := cmd.OnConflict.Error; c != "" {
-		r.Header.Add("X-On-Conflict-Error", fmt.Sprintf("%v", c))
+	for name, value := range headers {
+		r.Header.Add(name, value)
 	}
 
 	return r, nil
@@ -135,7 +160,21 @@ func (self *formatter) FormatUpdate(cmd ex.Command) (*http.Request, error) {
 	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
-	return self.FormatHttpRequest("PUT", url.String(), bytes.NewBuffer(body))
+	r, err := self.FormatHttpRequest("PUT", url.String(), bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	headers, err := self.FormatHeaders(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	for name, value := range headers {
+		r.Header.Add(name, value)
+	}
+
+	return r, nil
 }
 
 func (self *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
@@ -163,19 +202,37 @@ func (self *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 		params.Add(key, fmt.Sprintf("%v", value))
 	}
 
+	return params, nil
+}
+
+func (self *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
+	res := map[string]string{}
+
 	if len(cmd.Order) > 0 {
-		params.Add(":order", strings.Join(cmd.Order, ","))
+		res["X-Order-By"] = strings.Join(cmd.Order, ",")
 	}
 
 	if cmd.Limit.Arg > 0 {
-		params.Add(":limit", fmt.Sprintf("%v", cmd.Limit.Arg))
+		res["X-Limit"] = fmt.Sprintf("%v", cmd.Limit.Arg)
 	}
 
 	if cmd.Offset.Arg > 0 {
-		params.Add(":offset", fmt.Sprintf("%v", cmd.Offset.Arg))
+		res["X-Offset"] = fmt.Sprintf("%v", cmd.Offset.Arg)
 	}
 
-	return params, nil
+	if c := cmd.OnConflict.Update; len(c) > 0 {
+		res["X-On-Conflict-Update"] = strings.Join(c, ",")
+	}
+
+	if c := cmd.OnConflict.Ignore; c != "" {
+		res["X-On-Conflict-Ignore"] = fmt.Sprintf("%v", c)
+	}
+
+	if c := cmd.OnConflict.Error; c != "" {
+		res["X-On-Conflict-Error"] = fmt.Sprintf("%v", c)
+	}
+
+	return res, nil
 }
 
 func (self *formatter) FormatBody(values interface{}) ([]byte, error) {

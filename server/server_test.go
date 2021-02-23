@@ -473,9 +473,9 @@ var _ = Describe("Server", func() {
 					})
 				})
 
-				Context("with ':order' query params", func() {
+				Context("with 'order'", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = ":order=name"
+						request.Header.Add("X-Order-By", "name")
 					})
 
 					It("returns queried results", func() {
@@ -487,9 +487,9 @@ var _ = Describe("Server", func() {
 					})
 				})
 
-				Context("with ':limit' query params", func() {
+				Context("with 'limit'", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = ":limit=1"
+						request.Header.Add("X-Limit", "1")
 					})
 
 					It("returns queried results", func() {
@@ -499,9 +499,10 @@ var _ = Describe("Server", func() {
 					})
 				})
 
-				Context("with ':limit' and ':offset' query params", func() {
+				Context("with 'limit' and 'offset'", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = ":limit=1&:offset=1"
+						request.Header.Add("X-Limit", "1")
+						request.Header.Add("X-Offset", "1")
 					})
 
 					It("returns queried results", func() {
@@ -511,9 +512,9 @@ var _ = Describe("Server", func() {
 					})
 				})
 
-				Context("with ':offset' (no ':limit') query params", func() {
+				Context("with 'offset' (no 'limit')", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = ":offset=1"
+						request.Header.Add("X-Offset", "1")
 					})
 
 					It("errors", func() {
@@ -823,9 +824,9 @@ var _ = Describe("Server", func() {
 					})
 				})
 
-				Context("with ':limit' query params", func() {
+				Context("with 'limit'", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = ":limit=1"
+						request.Header.Add("X-Limit", "1")
 					})
 
 					It("returns deleted results", func() {
@@ -1171,9 +1172,9 @@ var _ = Describe("Server", func() {
 					})
 				})
 
-				Context("with ':limit' query params", func() {
+				Context("with 'limit'", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = ":limit=2"
+						request.Header.Add("X-Limit", "2")
 					})
 
 					It("returns modified results", func() {
