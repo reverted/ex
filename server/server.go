@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/reverted/ex"
 )
 
@@ -113,8 +114,12 @@ func (self *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx = context.WithValue(ctx, ctxKeyResource, path.Base(r.URL.Path))
 
 	if data, err := self.serve(r.WithContext(ctx)); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
 		self.Logger.Error(err)
+
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": self.errorMessage(err),
+		})
 
 	} else {
 		w.Header().Set("Content-Type", "application/json")
@@ -177,6 +182,15 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 	}
 
 	return data, nil
+}
+
+func (self *server) errorMessage(err error) string {
+	switch t := err.(type) {
+	case *mysql.MySQLError:
+		return t.Message
+	default:
+		return err.Error()
+	}
 }
 
 func Intercept(interceptor func(ctx context.Context, cmd ex.Command) (ex.Command, error)) InterceptorFunc {
