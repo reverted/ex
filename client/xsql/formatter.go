@@ -250,9 +250,9 @@ func (self *mysqlFormatter) FormatWhere(where ex.Where) (string, []interface{}) 
 			columns = append(columns, fmt.Sprintf("%s NOT LIKE ?", k))
 			args = append(args, "%"+value.Arg+"%")
 		case ex.Is:
-			columns = append(columns, fmt.Sprintf("%s IS %v", k, value.Arg))
+			columns = append(columns, fmt.Sprintf("%s IS %v", k, self.formatIs(value.Arg)))
 		case ex.IsNot:
-			columns = append(columns, fmt.Sprintf("%s IS NOT %v", k, value.Arg))
+			columns = append(columns, fmt.Sprintf("%s IS NOT %v", k, self.formatIs(value.Arg)))
 		case ex.In:
 			columns = append(columns, fmt.Sprintf("%s IN (%s)", k, self.formatIn(value)))
 			args = append(args, value...)
@@ -277,4 +277,8 @@ func (self *mysqlFormatter) FormatWhere(where ex.Where) (string, []interface{}) 
 func (self *mysqlFormatter) formatIn(args []interface{}) string {
 	qs := strings.Repeat("?", len(args))
 	return strings.Join(strings.Split(qs, ""), ",")
+}
+
+func (self *mysqlFormatter) formatIs(arg interface{}) string {
+	return "NULL"
 }
