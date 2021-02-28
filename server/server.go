@@ -117,9 +117,7 @@ func (self *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		self.Logger.Error(err)
 
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": self.errorMessage(err),
-		})
+		json.NewEncoder(w).Encode(self.errorMessage(err))
 
 	} else {
 		w.Header().Set("Content-Type", "application/json")
@@ -184,12 +182,17 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 	return data, nil
 }
 
-func (self *server) errorMessage(err error) string {
+func (self *server) errorMessage(err error) map[string]interface{} {
 	switch t := err.(type) {
 	case *mysql.MySQLError:
-		return t.Message
+		return map[string]interface{}{
+			"error_code":    t.Number,
+			"error_message": t.Message,
+		}
 	default:
-		return err.Error()
+		return map[string]interface{}{
+			"error_message": err.Error(),
+		}
 	}
 }
 
