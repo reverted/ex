@@ -185,3 +185,5 @@ type NotBtwn struct {
 type Literal struct {
 	Arg string
 }
+
+var Null = Literal{"NULL"}
