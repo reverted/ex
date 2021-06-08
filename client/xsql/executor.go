@@ -299,9 +299,15 @@ func (self *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data int
 	span, spanCtx := self.Tracer.StartSpan(ctx, "batch")
 	defer span.Finish()
 
-	for _, c := range batch.Requests {
-		if err := self.executeTx(spanCtx, tx, c, data); err != nil {
-			return err
+	for i, c := range batch.Requests {
+		if i < len(batch.Requests)-1 {
+			if err := self.executeTx(spanCtx, tx, c, nil); err != nil {
+				return err
+			}
+		} else {
+			if err := self.executeTx(spanCtx, tx, c, data); err != nil {
+				return err
+			}
 		}
 	}
 
