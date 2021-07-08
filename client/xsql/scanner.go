@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-
-	"github.com/go-sql-driver/mysql"
 )
 
 type Scannable interface {
@@ -193,7 +191,7 @@ func (self *scanner) scanValue(value interface{}, dbTypeName string) interface{}
 	case sql.NullBool:
 		return v.Bool
 
-	case mysql.NullTime:
+	case sql.NullTime:
 		return self.scanNullTime(v.Time, dbTypeName)
 
 	case sql.RawBytes:
