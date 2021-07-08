@@ -215,59 +215,57 @@ func (self *mysqlFormatter) FormatConflictError(conflict ex.OnConflictError) str
 	return ""
 }
 
+func (self *mysqlFormatter) FormatWhereArg(k string, v interface{}) (string, []interface{}) {
+	switch value := v.(type) {
+
+	case ex.Literal:
+		return fmt.Sprintf("%s = %s", k, value.Arg), nil
+	case ex.Eq:
+		return fmt.Sprintf("%s = ?", k), []interface{}{value.Arg}
+	case ex.NotEq:
+		return fmt.Sprintf("%s != ?", k), []interface{}{value.Arg}
+	case ex.Gt:
+		return fmt.Sprintf("%s > ?", k), []interface{}{value.Arg}
+	case ex.GtEq:
+		return fmt.Sprintf("%s >= ?", k), []interface{}{value.Arg}
+	case ex.Lt:
+		return fmt.Sprintf("%s < ?", k), []interface{}{value.Arg}
+	case ex.LtEq:
+		return fmt.Sprintf("%s <= ?", k), []interface{}{value.Arg}
+	case ex.Like:
+		return fmt.Sprintf("%s LIKE ?", k), []interface{}{"%" + value.Arg + "%"}
+	case ex.NotLike:
+		return fmt.Sprintf("%s NOT LIKE ?", k), []interface{}{"%" + value.Arg + "%"}
+	case ex.Is:
+		return fmt.Sprintf("%s IS %v", k, self.formatIs(value.Arg)), nil
+	case ex.IsNot:
+		return fmt.Sprintf("%s IS NOT %v", k, self.formatIs(value.Arg)), nil
+	case ex.In:
+		return fmt.Sprintf("%s IN (%s)", k, self.formatIn(value)), value
+	case ex.NotIn:
+		return fmt.Sprintf("%s NOT IN (%s)", k, self.formatIn(value)), value
+	case ex.Btwn:
+		return fmt.Sprintf("%s BETWEEN ? AND ?", k), []interface{}{value.Start, value.End}
+	case ex.NotBtwn:
+		return fmt.Sprintf("%s NOT BETWEEN ? AND ?", k), []interface{}{value.Start, value.End}
+	default:
+		return fmt.Sprintf("%s = ?", k), []interface{}{value}
+	}
+}
+
 func (self *mysqlFormatter) FormatWhere(where ex.Where) (string, []interface{}) {
 
 	var columns []string
 	var args []interface{}
 
 	for k, v := range where {
-		switch value := v.(type) {
+		column, arg := self.FormatWhereArg(k, v)
+		if column != "" {
+			columns = append(columns, column)
+		}
 
-		case ex.Literal:
-			columns = append(columns, fmt.Sprintf("%s = %s", k, value.Arg))
-		case ex.Eq:
-			columns = append(columns, fmt.Sprintf("%s = ?", k))
-			args = append(args, value.Arg)
-		case ex.NotEq:
-			columns = append(columns, fmt.Sprintf("%s != ?", k))
-			args = append(args, value.Arg)
-		case ex.Gt:
-			columns = append(columns, fmt.Sprintf("%s > ?", k))
-			args = append(args, value.Arg)
-		case ex.GtEq:
-			columns = append(columns, fmt.Sprintf("%s >= ?", k))
-			args = append(args, value.Arg)
-		case ex.Lt:
-			columns = append(columns, fmt.Sprintf("%s < ?", k))
-			args = append(args, value.Arg)
-		case ex.LtEq:
-			columns = append(columns, fmt.Sprintf("%s <= ?", k))
-			args = append(args, value.Arg)
-		case ex.Like:
-			columns = append(columns, fmt.Sprintf("%s LIKE ?", k))
-			args = append(args, "%"+value.Arg+"%")
-		case ex.NotLike:
-			columns = append(columns, fmt.Sprintf("%s NOT LIKE ?", k))
-			args = append(args, "%"+value.Arg+"%")
-		case ex.Is:
-			columns = append(columns, fmt.Sprintf("%s IS %v", k, self.formatIs(value.Arg)))
-		case ex.IsNot:
-			columns = append(columns, fmt.Sprintf("%s IS NOT %v", k, self.formatIs(value.Arg)))
-		case ex.In:
-			columns = append(columns, fmt.Sprintf("%s IN (%s)", k, self.formatIn(value)))
-			args = append(args, value...)
-		case ex.NotIn:
-			columns = append(columns, fmt.Sprintf("%s NOT IN (%s)", k, self.formatIn(value)))
-			args = append(args, value...)
-		case ex.Btwn:
-			columns = append(columns, fmt.Sprintf("%s BETWEEN ? AND ?", k))
-			args = append(args, value.Start, value.End)
-		case ex.NotBtwn:
-			columns = append(columns, fmt.Sprintf("%s NOT BETWEEN ? AND ?", k))
-			args = append(args, value.Start, value.End)
-		default:
-			columns = append(columns, fmt.Sprintf("%s = ?", k))
-			args = append(args, value)
+		if arg != nil {
+			args = append(args, arg...)
 		}
 	}
 
