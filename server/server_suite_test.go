@@ -6,8 +6,10 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -88,7 +90,7 @@ type database struct {
 func NewDatabase() *database {
 	name := "ex_server" + "_" + randomString()
 
-	db, err := sql.Open("mysql", "tcp(localhost:3306)/")
+	db, err := sql.Open("mysql", connection())
 	Expect(err).NotTo(HaveOccurred())
 
 	_, err = db.Exec("CREATE DATABASE " + name)
@@ -105,7 +107,17 @@ func (self *database) Close() {
 }
 
 func (self *database) Uri() string {
-	return "tcp(localhost:3306)/" + self.name
+	return connection() + self.name
+}
+
+func connection() string {
+	user, pass := os.Getenv("MYSQL_USER"), os.Getenv("MYSQL_PASS")
+
+	if user != "" {
+		return fmt.Sprintf("%s:%s@tcp(localhost:3306)/", user, pass)
+	} else {
+		return fmt.Sprintf("tcp(localhost:3306)/")
+	}
 }
 
 func newResource(id int, name string) resource {
