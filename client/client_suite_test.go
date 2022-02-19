@@ -131,10 +131,10 @@ func (self *database) Uri() string {
 }
 
 func connection() string {
-	user, pass := os.Getenv("MYSQL_USER"), os.Getenv("MYSQL_PASS")
+	user := os.Getenv("MYSQL_USER")
 
 	if user != "" {
-		return fmt.Sprintf("%s:%s@tcp(localhost:3306)/", user, pass)
+		return fmt.Sprintf("%s@tcp(localhost:3306)/", user)
 	} else {
 		return fmt.Sprintf("tcp(localhost:3306)/")
 	}
