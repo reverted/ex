@@ -34,9 +34,8 @@ jobs:
       uses: actions/checkout@v2
 
     - env:
-        MYSQL_CONNECTION: "tcp(127.0.0.1:3306)/"
+        MYSQL_CONNECTION: "root@tcp(127.0.0.1:3306)/"
       run: |
-       echo $MYSQL_CONNECTION
        go test -v ./...
        
     - name: Initialize CodeQL
