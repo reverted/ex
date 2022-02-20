@@ -152,23 +152,16 @@ func newResource(id int, name string) resource {
 
 var createResources = `CREATE TABLE resources (
   id            INTEGER         PRIMARY KEY AUTO_INCREMENT,
-  name          VARCHAR(160)    NOT NULL,
-  email         VARCHAR(160)    NOT NULL
+  name          VARCHAR(160)    NOT NULL
 )`
 
 type resource struct {
-	Id    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func (self *resource) Scan(rows *sql.Rows, cols ...string) error {
-	var email sql.NullString
-	if err := rows.Scan(&self.Id, &self.Name, &email); err != nil {
-		return err
-	}
-	self.Email = email.String
-	return nil
+	return rows.Scan(&self.Id, &self.Name)
 }
 
 func createResourcesTable() {

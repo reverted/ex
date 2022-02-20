@@ -1172,9 +1172,8 @@ var _ = Describe("Client", func() {
 
 	Describe("Scanning", func() {
 		type result struct {
-			Id    int    `json:"id"`
-			Name  string `json:"name"`
-			Email string `json:"email"`
+			Id   int    `json:"id"`
+			Name string `json:"name"`
 		}
 
 		BeforeEach(func() {
@@ -1196,7 +1195,7 @@ var _ = Describe("Client", func() {
 
 			It("scans", func() {
 				Expect(data).To(Equal(
-					result{Id: 1, Name: "resource-1", Email: ""},
+					result{Id: 1, Name: "resource-1"},
 				))
 			})
 		})
@@ -1215,7 +1214,7 @@ var _ = Describe("Client", func() {
 
 			It("scans", func() {
 				Expect(data).To(Equal(
-					&result{Id: 1, Name: "resource-1", Email: ""},
+					&result{Id: 1, Name: "resource-1"},
 				))
 			})
 		})
@@ -1235,9 +1234,8 @@ var _ = Describe("Client", func() {
 			It("scans", func() {
 				Expect(data).To(Equal(
 					map[string]interface{}{
-						"id":    1,
-						"name":  "resource-1",
-						"email": "",
+						"id":   1,
+						"name": "resource-1",
 					},
 				))
 			})
@@ -1257,9 +1255,9 @@ var _ = Describe("Client", func() {
 
 			It("scans", func() {
 				Expect(data).To(ConsistOf(
-					result{Id: 1, Name: "resource-1", Email: ""},
-					result{Id: 2, Name: "resource-2", Email: ""},
-					result{Id: 3, Name: "resource-3", Email: ""},
+					result{Id: 1, Name: "resource-1"},
+					result{Id: 2, Name: "resource-2"},
+					result{Id: 3, Name: "resource-3"},
 				))
 			})
 		})
@@ -1278,9 +1276,9 @@ var _ = Describe("Client", func() {
 
 			It("scans", func() {
 				Expect(data).To(ConsistOf(
-					&result{Id: 1, Name: "resource-1", Email: ""},
-					&result{Id: 2, Name: "resource-2", Email: ""},
-					&result{Id: 3, Name: "resource-3", Email: ""},
+					&result{Id: 1, Name: "resource-1"},
+					&result{Id: 2, Name: "resource-2"},
+					&result{Id: 3, Name: "resource-3"},
 				))
 			})
 		})
@@ -1300,19 +1298,16 @@ var _ = Describe("Client", func() {
 			It("scans", func() {
 				Expect(data).To(ConsistOf(
 					map[string]interface{}{
-						"id":    1,
-						"name":  "resource-1",
-						"email": "",
+						"id":   1,
+						"name": "resource-1",
 					},
 					map[string]interface{}{
-						"id":    2,
-						"name":  "resource-2",
-						"email": "",
+						"id":   2,
+						"name": "resource-2",
 					},
 					map[string]interface{}{
-						"id":    3,
-						"name":  "resource-3",
-						"email": "",
+						"id":   3,
+						"name": "resource-3",
 					},
 				))
 			})
