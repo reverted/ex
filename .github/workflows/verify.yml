@@ -34,7 +34,7 @@ jobs:
       uses: actions/checkout@v2
 
     - env:
-        MYSQL_CONNECTION: ${{ job.services.mysql }}
+        MYSQL_CONNECTION: ${{ job.services.mysql.ports[3306] }}
       run: |
        echo $MYSQL_CONNECTION
        go test -v ./...
