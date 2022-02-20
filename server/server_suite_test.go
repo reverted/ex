@@ -85,18 +85,22 @@ var _ = AfterEach(func() {
 type database struct {
 	*sql.DB
 	name string
+	uri  string
 }
 
 func NewDatabase() *database {
-	name := "ex_server" + "_" + randomString()
 
-	db, err := sql.Open("mysql", connection())
+	uri := connection()
+
+	db, err := sql.Open("mysql", uri)
 	Expect(err).NotTo(HaveOccurred())
+
+	name := "ex_server" + "_" + randomString()
 
 	_, err = db.Exec("CREATE DATABASE " + name)
 	Expect(err).NotTo(HaveOccurred())
 
-	return &database{db, name}
+	return &database{db, name, uri}
 }
 
 func (self *database) Close() {
@@ -107,14 +111,13 @@ func (self *database) Close() {
 }
 
 func (self *database) Uri() string {
-	return connection() + self.name
+	return self.uri + self.name
 }
 
 func connection() string {
-	user, pass := os.Getenv("MYSQL_USER"), os.Getenv("MYSQL_PASS")
 
-	if user != "" {
-		return fmt.Sprintf("%s:%s@tcp(localhost:3306)/", user, pass)
+	if conn := os.Getenv("MYSQL_CONNECTION"); conn != "" {
+		return conn
 	} else {
 		return fmt.Sprintf("tcp(localhost:3306)/")
 	}

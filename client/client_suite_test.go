@@ -105,18 +105,22 @@ var _ = AfterEach(func() {
 type database struct {
 	*sql.DB
 	name string
+	uri  string
 }
 
 func NewDatabase() *database {
-	name := "ex_client" + "_" + randomString()
 
-	db, err := sql.Open("mysql", connection())
+	uri := connection()
+
+	db, err := sql.Open("mysql", uri)
 	Expect(err).NotTo(HaveOccurred())
+
+	name := "ex_client" + "_" + randomString()
 
 	_, err = db.Exec("CREATE DATABASE " + name)
 	Expect(err).NotTo(HaveOccurred())
 
-	return &database{db, name}
+	return &database{db, name, uri}
 }
 
 func (self *database) Close() {
@@ -127,14 +131,13 @@ func (self *database) Close() {
 }
 
 func (self *database) Uri() string {
-	return connection() + self.name
+	return self.uri + self.name
 }
 
 func connection() string {
-	user, pass := os.Getenv("MYSQL_USER"), os.Getenv("MYSQL_PASS")
 
-	if user != "" {
-		return fmt.Sprintf("%s:%s@tcp(localhost:3306)/", user, pass)
+	if conn := os.Getenv("MYSQL_CONNECTION"); conn != "" {
+		return conn
 	} else {
 		return fmt.Sprintf("tcp(localhost:3306)/")
 	}
@@ -149,23 +152,16 @@ func newResource(id int, name string) resource {
 
 var createResources = `CREATE TABLE resources (
   id            INTEGER         PRIMARY KEY AUTO_INCREMENT,
-  name          VARCHAR(160)    NOT NULL,
-  email         VARCHAR(160)    NOT NULL
+  name          VARCHAR(160)    NOT NULL
 )`
 
 type resource struct {
-	Id    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func (self *resource) Scan(rows *sql.Rows, cols ...string) error {
-	var email sql.NullString
-	if err := rows.Scan(&self.Id, &self.Name, &email); err != nil {
-		return err
-	}
-	self.Email = email.String
-	return nil
+	return rows.Scan(&self.Id, &self.Name)
 }
 
 func createResourcesTable() {
