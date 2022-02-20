@@ -33,8 +33,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - run: |
-       MYSQL_USER=root go test -v ./...
+    - env:
+        MYSQL_CONNECTION: ${{ job.services.mysql }}
+      run: |
+       echo $MYSQL_CONNECTION
+       go test -v ./...
        
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
