@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/reverted/ex"
 	"github.com/reverted/ex/client/xhttp"
 	"github.com/reverted/ex/client/xhttp/mocks"
-	"github.com/reverted/logger"
 )
 
 type Executor interface {
@@ -39,10 +39,7 @@ var _ = Describe("Executor", func() {
 	)
 
 	BeforeEach(func() {
-		logger := logger.New("test",
-			logger.Writer(GinkgoWriter),
-			logger.Level(logger.Debug),
-		)
+		logger := newLogger()
 
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = mocks.NewMockClient(mockCtrl)
@@ -191,4 +188,14 @@ func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 
 func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
+}
+
+func newLogger() *logger {
+	return &logger{}
+}
+
+type logger struct{}
+
+func (self *logger) Infof(format string, args ...interface{}) {
+	fmt.Fprintf(GinkgoWriter, format, args...)
 }

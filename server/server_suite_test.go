@@ -19,7 +19,6 @@ import (
 	"github.com/reverted/ex/client"
 	"github.com/reverted/ex/client/xsql"
 	"github.com/reverted/ex/server"
-	"github.com/reverted/logger"
 )
 
 func TestServer(t *testing.T) {
@@ -46,10 +45,7 @@ var _ = BeforeEach(func() {
 
 	tracer := noopTracer{}
 
-	logger := logger.New("test",
-		logger.Writer(GinkgoWriter),
-		logger.Level(logger.Debug),
-	)
+	logger := newLogger()
 
 	db = NewDatabase()
 
@@ -187,4 +183,22 @@ func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 
 func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
+}
+
+func newLogger() *logger {
+	return &logger{}
+}
+
+type logger struct{}
+
+func (self *logger) Error(args ...interface{}) {
+	fmt.Fprintln(GinkgoWriter, args...)
+}
+
+func (self *logger) Errorf(format string, args ...interface{}) {
+	fmt.Fprintf(GinkgoWriter, format, args...)
+}
+
+func (self *logger) Infof(format string, args ...interface{}) {
+	fmt.Fprintf(GinkgoWriter, format, args...)
 }
