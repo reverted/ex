@@ -66,13 +66,17 @@ func (self *interceptor) Intercept(ctx context.Context, cmd ex.Command) (ex.Comm
 
 	for _, key := range mod.WhereKeys {
 		if cmd.Where != nil {
-			cmd.Where[key] = ctx.Value(key)
+			if _, ok := cmd.Where[key]; !ok {
+				cmd.Where[key] = ctx.Value(key)
+			}
 		}
 	}
 
 	for _, key := range mod.ValuesKeys {
 		if cmd.Values != nil {
-			cmd.Values[key] = ctx.Value(key)
+			if _, ok := cmd.Values[key]; !ok {
+				cmd.Values[key] = ctx.Value(key)
+			}
 		}
 	}
 

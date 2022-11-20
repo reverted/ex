@@ -85,6 +85,24 @@ var _ = Describe("Interceptor", func() {
 					Expect(res.Values).To(HaveKeyWithValue("some-other-key", "value"))
 				})
 			})
+
+			Context("when the where key is already set", func() {
+				BeforeEach(func() {
+					cmd.Where["some-key"] = "some-other-value"
+					ctx = context.WithValue(ctx, "some-key", "value")
+					ctx = context.WithValue(ctx, "some-other-key", "value")
+				})
+
+				It("doesnt udpate the where", func() {
+					Expect(res.Where).To(HaveKeyWithValue("some-key", "some-other-value"))
+					Expect(res.Where).To(HaveKeyWithValue("some-other-key", "value"))
+				})
+
+				It("udpates the values", func() {
+					Expect(res.Values).To(HaveKeyWithValue("some-key", "value"))
+					Expect(res.Values).To(HaveKeyWithValue("some-other-key", "value"))
+				})
+			})
 		})
 
 		Context("when the modifier injects only where", func() {
