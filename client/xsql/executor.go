@@ -125,7 +125,7 @@ func (self *executor) Execute(ctx context.Context, req ex.Request, data interfac
 
 	switch t := err.(type) {
 	case *mysql.MySQLError:
-		return (t.Number == 1213), err
+		return (t.Number == 1213), err // retry on deadlock
 
 	default:
 		return false, err
