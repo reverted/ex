@@ -116,7 +116,7 @@ func (self *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if data, err := self.serve(r.WithContext(ctx)); err != nil {
 		self.Logger.Error(err)
 
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(self.statusCode(err))
 		json.NewEncoder(w).Encode(self.errorMessage(err))
 
 	} else {
@@ -182,8 +182,22 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 	return data, nil
 }
 
+func (self *server) statusCode(err error) int {
+	switch t := err.(type) {
+	case *statusError:
+		return t.StatusCode
+	default:
+		return http.StatusBadRequest
+	}
+}
+
 func (self *server) errorMessage(err error) map[string]interface{} {
 	switch t := err.(type) {
+	case *statusError:
+		return map[string]interface{}{
+			"error_code":    t.StatusCode,
+			"error_message": t.Error(),
+		}
 	case *mysql.MySQLError:
 		return map[string]interface{}{
 			"error_code":    t.Number,
@@ -214,4 +228,20 @@ type ProcessorFunc func(context.Context, []map[string]interface{}) ([]map[string
 
 func (self ProcessorFunc) Process(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error) {
 	return self(ctx, res)
+}
+
+func NewStatusError(statusCode int, err error) *statusError {
+	return &statusError{
+		StatusCode: statusCode,
+		Err:        err,
+	}
+}
+
+type statusError struct {
+	StatusCode int
+	Err        error
+}
+
+func (r *statusError) Error() string {
+	return fmt.Sprintf("status %d: err %v", r.StatusCode, r.Err)
 }
