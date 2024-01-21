@@ -1,0 +1,44 @@
+name: release
+
+on: workflow_dispatch
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Generate Tag
+      run: |
+        NEW_TAG=$(git tag --list --sort=-version:refname | head -n1 | awk -F. '{ printf "%s.%s.%s", $1, $2, $3+1 }')
+        if [ -z "$NEW_TAG" ]; then
+          NEW_TAG=v0.0.1
+        fi
+
+        echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+
+    - name: Push Tag
+      if: ${{ env.NEW_TAG }}
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "github-actions@users.noreply.github.com"
+        git tag $NEW_TAG
+        git push origin $NEW_TAG
+
+    - name: Create Release
+      if: ${{ env.NEW_TAG }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create "$NEW_TAG" \
+            --repo="$GITHUB_REPOSITORY" \
+            --title="$NEW_TAG" \
+            --generate-notes

@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  analyze:
+  verify:
     name: verify
     runs-on: ubuntu-latest
     permissions:
@@ -30,21 +30,22 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
     - env:
         MYSQL_CONNECTION: "root@tcp(127.0.0.1:3306)/"
       run: |
        go test -v ./...
-       
+
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
 
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v1
+      uses: github/codeql-action/autobuild@v2
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
+
