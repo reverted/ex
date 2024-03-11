@@ -3,13 +3,14 @@ module github.com/reverted/ex
 go 1.20
 
 require (
-	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-sql-driver/mysql v1.8.0
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.31.1
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
