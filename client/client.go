@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/reverted/ex"
@@ -43,6 +44,7 @@ func New(logger Logger, opts ...opt) *client {
 
 	client := &client{
 		Logger: logger,
+		Tracer: noopTracer{},
 	}
 
 	for _, opt := range opts {
@@ -101,4 +103,21 @@ func (self *client) execute(ctx context.Context, req ex.Request, data interface{
 	}
 
 	return err
+}
+
+type noopSpan struct{}
+
+func (self noopSpan) Finish() {}
+
+type noopTracer struct{}
+
+func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+	return noopSpan{}, ctx
+}
+
+func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+}
+
+func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+	return noopSpan{}, r.Context()
 }
