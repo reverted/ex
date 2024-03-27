@@ -203,6 +203,9 @@ func (self *scanner) scanValue(value interface{}, dbTypeName string) interface{}
 	case int64:
 		return int(v)
 
+	case string:
+		return self.scanString(string(v))
+
 	default:
 		return value
 	}
