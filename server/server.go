@@ -81,6 +81,7 @@ func New(logger Logger, client Client, opts ...opt) *server {
 		Logger:       logger,
 		Client:       client,
 		Parser:       NewParser(),
+		Tracer:       noopTracer{},
 		Interceptors: []Interceptor{},
 		Processors:   []Processor{},
 		IncludeKeys:  map[string]bool{},
@@ -244,4 +245,21 @@ type statusError struct {
 
 func (r *statusError) Error() string {
 	return fmt.Sprintf("status %d: err %v", r.StatusCode, r.Err)
+}
+
+type noopSpan struct{}
+
+func (self noopSpan) Finish() {}
+
+type noopTracer struct{}
+
+func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+	return noopSpan{}, ctx
+}
+
+func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+}
+
+func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+	return noopSpan{}, r.Context()
 }
