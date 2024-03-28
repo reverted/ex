@@ -3,6 +3,7 @@ package xsql
 import (
 	"context"
 	"errors"
+	"net/http"
 	"reflect"
 	"strings"
 
@@ -91,20 +92,18 @@ func WithConnection(connection Connection) opt {
 
 func NewExecutor(logger Logger, opts ...opt) *executor {
 
-	executor := &executor{Logger: logger}
+	executor := &executor{
+		Logger:    logger,
+		Tracer:    noopTracer{},
+		Scanner:   NewScanner(),
+		Formatter: NewMysqlFormatter(),
+	}
 
 	for _, opt := range opts {
 		opt(executor)
 	}
 
-	if executor.Scanner == nil {
-		WithScanner(NewScanner())(executor)
-	}
-
-	if executor.Formatter == nil {
-		WithMysqlFormatter()(executor)
-	}
-
+	// This calls dial so this should only get initialized if conn is nil
 	if executor.Connection == nil {
 		WithConnection(NewConn("mysql", "tcp(localhost:3306)/dev"))(executor)
 	}
@@ -337,4 +336,21 @@ func (self *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement)
 	defer span.Finish()
 
 	return tx.ExecContext(spanCtx, stmt.Stmt, stmt.Args...)
+}
+
+type noopSpan struct{}
+
+func (self noopSpan) Finish() {}
+
+type noopTracer struct{}
+
+func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+	return noopSpan{}, ctx
+}
+
+func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+}
+
+func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+	return noopSpan{}, r.Context()
 }

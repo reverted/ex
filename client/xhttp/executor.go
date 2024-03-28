@@ -54,19 +54,17 @@ func WithClient(client Client) opt {
 
 func NewExecutor(logger Logger, opts ...opt) *executor {
 
-	executor := &executor{Logger: logger}
+	url, _ := url.Parse("http://localhost:8080")
+
+	executor := &executor{
+		Logger:    logger,
+		Formatter: NewFormatter(url),
+		Tracer:    noopTracer{},
+		Client:    http.DefaultClient,
+	}
 
 	for _, opt := range opts {
 		opt(executor)
-	}
-
-	if executor.Formatter == nil {
-		url, _ := url.Parse("http://localhost:8080")
-		WithTarget(url)(executor)
-	}
-
-	if executor.Client == nil {
-		WithClient(http.DefaultClient)(executor)
 	}
 
 	return executor
@@ -115,4 +113,21 @@ func (self *executor) exec(ctx context.Context, r *http.Request, data interface{
 	default:
 		return false, nil
 	}
+}
+
+type noopSpan struct{}
+
+func (self noopSpan) Finish() {}
+
+type noopTracer struct{}
+
+func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+	return noopSpan{}, ctx
+}
+
+func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+}
+
+func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+	return noopSpan{}, r.Context()
 }
