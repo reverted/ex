@@ -186,4 +186,8 @@ type Literal struct {
 	Arg string
 }
 
+type Json struct {
+	Arg interface{}
+}
+
 var Null = Literal{"NULL"}

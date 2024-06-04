@@ -1,6 +1,7 @@
 package xsql
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -139,6 +140,11 @@ func (self *mysqlFormatter) FormatValues(values ex.Values) (string, []interface{
 		switch value := v.(type) {
 		case ex.Literal:
 			columns = append(columns, fmt.Sprintf("%s=%s", k, value.Arg))
+
+		case ex.Json:
+			data, _ := json.Marshal(value.Arg)
+			columns = append(columns, fmt.Sprintf("%s = ?", k))
+			args = append(args, string(data))
 
 		default:
 			columns = append(columns, fmt.Sprintf("%s = ?", k))

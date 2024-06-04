@@ -2,6 +2,7 @@ package xsql
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -177,7 +178,7 @@ func (self *scanner) scanValue(value interface{}, dbTypeName string) interface{}
 
 	switch v := value.(type) {
 	case sql.NullString:
-		return v.String
+		return self.scanNullString(v.String, dbTypeName)
 
 	case sql.NullInt32:
 		return int(v.Int32)
@@ -240,6 +241,17 @@ func (self *scanner) scanString(value string) interface{} {
 		return false
 	default:
 		return value
+	}
+}
+
+func (self *scanner) scanNullString(value string, dbTypeName string) interface{} {
+	switch dbTypeName {
+	case "JSON":
+		var data interface{}
+		json.Unmarshal([]byte(value), &data)
+		return data
+	default:
+		return self.scanString(value)
 	}
 }
 
