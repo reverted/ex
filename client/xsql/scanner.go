@@ -270,10 +270,6 @@ func (self *scanner) scanTags(rows Rows, item interface{}) error {
 		v = v.Elem()
 	}
 
-	if len(scanned) != t.NumField() {
-		return fmt.Errorf("field length mismatch (%v, %v)", len(scanned), t.NumField())
-	}
-
 	return self.assignFields(t, v, scanned)
 }
 
@@ -292,6 +288,10 @@ func (self *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[s
 		item, ok := scanned[tag]
 		if !ok {
 			return fmt.Errorf("field not found: %s", tag)
+		}
+
+		if item == nil {
+			continue
 		}
 
 		ts := reflect.TypeOf(item)
