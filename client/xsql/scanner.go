@@ -275,6 +275,27 @@ func (self *scanner) scanTags(rows Rows, item interface{}) error {
 
 func (self *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[string]interface{}) error {
 
+	if t == reflect.TypeOf(json.RawMessage{}) {
+		data, err := json.Marshal(scanned)
+		if err != nil {
+			return fmt.Errorf("failed to marshal map to json: %w", err)
+		}
+		v.SetBytes(data)
+		return nil
+	}
+
+	if t.Kind() == reflect.Map {
+		if !v.CanSet() {
+			return fmt.Errorf("cannot set value: %v", v)
+		}
+		v.Set(reflect.ValueOf(scanned))
+		return nil
+	}
+
+	if t.Kind() != reflect.Struct {
+		return fmt.Errorf("expected a map or struct, got %v", t)
+	}
+
 	for i := 0; i < t.NumField(); i++ {
 		tf := t.Field(i)
 		vf := v.Field(i)
@@ -299,6 +320,17 @@ func (self *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[s
 
 		if !vf.CanSet() {
 			return fmt.Errorf("cannot set field: %s", tag)
+		}
+
+		if ts.Kind() == reflect.Map {
+			subMap, ok := item.(map[string]interface{})
+			if ok {
+
+				if err := self.assignFields(tf.Type, vf, subMap); err != nil {
+					return err
+				}
+				continue
+			}
 		}
 
 		if !ts.AssignableTo(tf.Type) {

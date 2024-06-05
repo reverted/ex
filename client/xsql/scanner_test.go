@@ -213,8 +213,8 @@ var _ = Describe("Scanner", func() {
 						mockRows.EXPECT().Err().Return(nil)
 					})
 
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
+					It("succeeds", func() {
+						Expect(err).NotTo(HaveOccurred())
 					})
 				})
 			})
