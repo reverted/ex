@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -102,10 +103,12 @@ func (self *executor) exec(ctx context.Context, r *http.Request, data interface{
 
 	switch {
 	case resp.StatusCode >= 500:
-		return true, fmt.Errorf("server error: %v", resp.StatusCode)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return true, fmt.Errorf("server error: [%v] %s", resp.StatusCode, string(bodyBytes))
 
 	case resp.StatusCode >= 400:
-		return false, fmt.Errorf("client error: %v", resp.StatusCode)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return false, fmt.Errorf("client error: [%v] %s", resp.StatusCode, string(bodyBytes))
 
 	case data != nil:
 		return false, json.NewDecoder(resp.Body).Decode(data)
