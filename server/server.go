@@ -117,10 +117,17 @@ func (self *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if data, err := self.serve(r.WithContext(ctx)); err != nil {
 		self.Logger.Error(err)
 
-		w.WriteHeader(self.statusCode(err))
-		json.NewEncoder(w).Encode(self.errorMessage(err))
+		statusCode := self.statusCode(err)
+		statusMessage := self.errorMessage(err)
+
+		self.Logger.Infof("<<< %v : %v [%v] %v", r.Method, r.URL, statusCode, statusMessage)
+
+		w.WriteHeader(statusCode)
+		json.NewEncoder(w).Encode(statusMessage)
 
 	} else {
+		self.Logger.Infof("<<< %v : %v [200]", r.Method, r.URL)
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(data)
 	}
