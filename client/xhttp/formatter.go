@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -138,17 +139,17 @@ func (self *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) 
 	return res, nil
 }
 
-func (self *formatter) FormatBodyForMethod(method string, values interface{}) (*bytes.Buffer, error) {
+func (self *formatter) FormatBodyForMethod(method string, values interface{}) (io.Reader, error) {
 
 	switch method {
 	case "PUT", "POST":
 		return self.FormatBody(values)
 	default:
-		return nil, nil
+		return http.NoBody, nil
 	}
 }
 
-func (self *formatter) FormatBody(values interface{}) (*bytes.Buffer, error) {
+func (self *formatter) FormatBody(values interface{}) (io.Reader, error) {
 
 	content, err := json.Marshal(values)
 	if err != nil {
