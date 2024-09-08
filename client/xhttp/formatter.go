@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -48,12 +47,14 @@ func (self *formatter) FormatCommand(cmd ex.Command) (*http.Request, error) {
 
 func (self *formatter) FormatRequest(cmd ex.Command) (*http.Request, error) {
 
+	method := methods[cmd.Action]
+
 	params, err := self.FormatParams(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := self.FormatBody(cmd.Values)
+	body, err := self.FormatBodyForMethod(method, cmd.Values)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func (self *formatter) FormatRequest(cmd ex.Command) (*http.Request, error) {
 	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
-	r, err := self.FormatHttpRequest(methods[cmd.Action], url.String(), body)
+	r, err := http.NewRequest(method, url.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +90,7 @@ func (self *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
 	url := *self.URL
 	url.Path = path.Join(url.Path, ":batch")
 
-	return self.FormatHttpRequest("POST", url.String(), body)
+	return http.NewRequest("POST", url.String(), body)
 }
 
 func (self *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
@@ -137,6 +138,16 @@ func (self *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) 
 	return res, nil
 }
 
+func (self *formatter) FormatBodyForMethod(method string, values interface{}) (*bytes.Buffer, error) {
+
+	switch method {
+	case "PUT", "POST":
+		return self.FormatBody(values)
+	default:
+		return nil, nil
+	}
+}
+
 func (self *formatter) FormatBody(values interface{}) (*bytes.Buffer, error) {
 
 	content, err := json.Marshal(values)
@@ -145,11 +156,6 @@ func (self *formatter) FormatBody(values interface{}) (*bytes.Buffer, error) {
 	}
 
 	return bytes.NewBuffer(content), nil
-}
-
-func (self *formatter) FormatHttpRequest(method, url string, body io.Reader) (*http.Request, error) {
-
-	return http.NewRequest(method, url, body)
 }
 
 var methods = map[string]string{
