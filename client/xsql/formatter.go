@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/reverted/ex"
@@ -133,23 +134,42 @@ func (self *mysqlFormatter) FormatUpdate(cmd ex.Command) ex.Statement {
 
 func (self *mysqlFormatter) FormatValues(values ex.Values) (string, []interface{}) {
 
-	var columns []string
-	var args []interface{}
+	var columnArgs []columnArg
 
 	for k, v := range values {
 		switch value := v.(type) {
 		case ex.Literal:
-			columns = append(columns, fmt.Sprintf("%s=%s", k, value.Arg))
+			columnArgs = append(columnArgs, columnArg{
+				column: fmt.Sprintf("%s=%s", k, value.Arg),
+				args:   nil,
+			})
 
 		case ex.Json:
 			data, _ := json.Marshal(value.Arg)
-			columns = append(columns, fmt.Sprintf("%s = ?", k))
-			args = append(args, string(data))
+			columnArgs = append(columnArgs, columnArg{
+				column: fmt.Sprintf("%s = ?", k),
+				args:   []interface{}{string(data)},
+			})
 
 		default:
-			columns = append(columns, fmt.Sprintf("%s = ?", k))
-			args = append(args, v)
+			columnArgs = append(columnArgs, columnArg{
+				column: fmt.Sprintf("%s = ?", k),
+				args:   []interface{}{v},
+			})
 		}
+	}
+
+	// Sort the columnArgs slice by the column names
+	sort.Slice(columnArgs, func(i, j int) bool {
+		return columnArgs[i].column < columnArgs[j].column
+	})
+
+	var columns []string
+	var args []interface{}
+
+	for _, ca := range columnArgs {
+		columns = append(columns, ca.column)
+		args = append(args, ca.args...)
 	}
 
 	return strings.Join(columns, ","), args
@@ -261,18 +281,26 @@ func (self *mysqlFormatter) FormatWhereArg(k string, v interface{}) (string, []i
 
 func (self *mysqlFormatter) FormatWhere(where ex.Where) (string, []interface{}) {
 
-	var columns []string
-	var args []interface{}
+	var columnArgs []columnArg
 
 	for k, v := range where {
 		column, arg := self.FormatWhereArg(k, v)
 		if column != "" {
-			columns = append(columns, column)
+			columnArgs = append(columnArgs, columnArg{column, arg})
 		}
+	}
 
-		if arg != nil {
-			args = append(args, arg...)
-		}
+	// Sort the columnArgs slice by the column names
+	sort.Slice(columnArgs, func(i, j int) bool {
+		return columnArgs[i].column < columnArgs[j].column
+	})
+
+	var columns []string
+	var args []interface{}
+
+	for _, ca := range columnArgs {
+		columns = append(columns, ca.column)
+		args = append(args, ca.args...)
 	}
 
 	return strings.Join(columns, " AND "), args
@@ -285,4 +313,9 @@ func (self *mysqlFormatter) formatIn(args []interface{}) string {
 
 func (self *mysqlFormatter) formatIs(arg interface{}) string {
 	return "NULL"
+}
+
+type columnArg struct {
+	column string
+	args   []interface{}
 }
