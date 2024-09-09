@@ -216,8 +216,16 @@ func (self *scanner) scanNullTime(t time.Time, dbTypeName string) interface{} {
 	switch dbTypeName {
 	case "DATE":
 		return t.Format("2006-01-02")
-	default:
+	case "DATETIME", "TIMESTAMP":
 		return t.Format(time.RFC3339)
+	case "DATETIME(1)", "TIMESTAMP(1)":
+		return t.Format("2006-01-02T15:04:05.0Z07:00")
+	case "DATETIME(2)", "TIMESTAMP(2)":
+		return t.Format("2006-01-02T15:04:05.00Z07:00")
+	case "DATETIME(3)", "TIMESTAMP(3)":
+		return t.Format("2006-01-02T15:04:05.000Z07:00")
+	default:
+		return t.Format(time.RFC3339Nano)
 	}
 }
 
