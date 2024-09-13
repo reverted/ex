@@ -166,6 +166,71 @@ var _ = Describe("Formatter", func() {
 			})
 		})
 
+		Context("when the command is wrapped in ex.Json", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": ex.Json{[]string{"value1", "value2"}}},
+				)
+			})
+
+			It("formats the command as json", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
+			})
+		})
+
+		Context("when the command has a interface slice value", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": []interface{}{"value1", "value2"}},
+				)
+			})
+
+			It("formats the command as json", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
+			})
+		})
+
+		Context("when the command has a string slice value", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": []string{"value1", "value2"}},
+				)
+			})
+
+			It("formats the command as json", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
+			})
+		})
+
+		Context("when the command has a map string interface value", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": map[string]interface{}{"key": 0}},
+				)
+			})
+
+			It("formats the command as json", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Args).To(ConsistOf("{\"key\":0}"))
+			})
+		})
+
+		Context("when the command has a map string string value", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": map[string]string{"key": "value"}},
+				)
+			})
+
+			It("formats the command as json", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Args).To(ConsistOf("{\"key\":\"value\"}"))
+			})
+		})
+
 		Context("when the command has conflict ignore", func() {
 			BeforeEach(func() {
 				cmd = ex.Insert("resources",
