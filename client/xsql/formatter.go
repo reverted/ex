@@ -151,6 +151,20 @@ func (self *mysqlFormatter) FormatValues(values ex.Values) (string, []interface{
 				args:   []interface{}{string(data)},
 			})
 
+		case []interface{}:
+			data, _ := json.Marshal(value)
+			columnArgs = append(columnArgs, columnArg{
+				column: fmt.Sprintf("%s = ?", k),
+				args:   []interface{}{string(data)},
+			})
+
+		case map[string]interface{}:
+			data, _ := json.Marshal(value)
+			columnArgs = append(columnArgs, columnArg{
+				column: fmt.Sprintf("%s = ?", k),
+				args:   []interface{}{string(data)},
+			})
+
 		default:
 			columnArgs = append(columnArgs, columnArg{
 				column: fmt.Sprintf("%s = ?", k),
