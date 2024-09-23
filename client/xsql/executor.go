@@ -318,22 +318,14 @@ func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement, data inte
 	span, spanCtx := e.Tracer.StartSpan(ctx, "stmt")
 	defer span.Finish()
 
-	compare := strings.TrimSpace(strings.ToUpper(stmt.Stmt))
-	isSelect := strings.HasPrefix(compare, "SELECT")
-
-	if isSelect {
-		rows, err := e.queryContext(spanCtx, tx, stmt)
-		if err != nil {
-			return err
-		}
-
-		defer rows.Close()
-
-		return e.Scanner.Scan(rows, data)
+	rows, err := e.queryContext(spanCtx, tx, stmt)
+	if err != nil {
+		return err
 	}
 
-	_, err := e.execContext(spanCtx, tx, stmt)
-	return err
+	defer rows.Close()
+
+	return e.Scanner.Scan(rows, data)
 }
 
 func (e *executor) queryContext(ctx context.Context, tx Tx, stmt ex.Statement) (Rows, error) {
