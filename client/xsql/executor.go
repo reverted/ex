@@ -225,7 +225,7 @@ func (e *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data inter
 		}
 	}
 
-	return e.stmt(spanCtx, tx, stmt, data)
+	return e.stmt(spanCtx, tx, stmt, nil)
 }
 
 func (e *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
@@ -274,7 +274,7 @@ func (e *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data inter
 	span, spanCtx := e.Tracer.StartSpan(ctx, "update")
 	defer span.Finish()
 
-	if err := e.stmt(spanCtx, tx, stmt, data); err != nil {
+	if err := e.stmt(spanCtx, tx, stmt, nil); err != nil {
 		return err
 	}
 
