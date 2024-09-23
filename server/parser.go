@@ -22,11 +22,31 @@ func (p *parser) Parse(r *http.Request) (ex.Request, error) {
 
 	resource := p.ParseResource(r)
 
-	if resource == ":batch" {
+	switch resource {
+	case ":exec":
+		return p.ParseStatement(r)
+
+	case ":batch":
 		return p.ParseBatch(r)
-	} else {
+
+	default:
 		return p.ParseCommand(r)
 	}
+}
+
+func (p *parser) ParseStatement(r *http.Request) (ex.Statement, error) {
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return ex.Statement{}, err
+	}
+
+	var stmt ex.Statement
+	if err = json.Unmarshal(body, &stmt); err != nil {
+		return ex.Statement{}, err
+	}
+
+	return stmt, nil
 }
 
 func (p *parser) ParseBatch(r *http.Request) (ex.Batch, error) {

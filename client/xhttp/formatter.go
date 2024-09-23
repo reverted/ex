@@ -24,6 +24,9 @@ type formatter struct {
 
 func (f *formatter) Format(req ex.Request) (*http.Request, error) {
 	switch c := req.(type) {
+	case ex.Statement:
+		return f.FormatStatement(c)
+
 	case ex.Command:
 		return f.FormatCommand(c)
 
@@ -33,6 +36,32 @@ func (f *formatter) Format(req ex.Request) (*http.Request, error) {
 	default:
 		return nil, errors.New("unsupported req")
 	}
+}
+
+func (f *formatter) FormatStatement(stmt ex.Statement) (*http.Request, error) {
+
+	body, err := f.FormatBody(stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	url := *f.URL
+	url.Path = path.Join(url.Path, ":exec")
+
+	return http.NewRequest("POST", url.String(), body)
+}
+
+func (f *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
+
+	body, err := f.FormatBody(batch)
+	if err != nil {
+		return nil, err
+	}
+
+	url := *f.URL
+	url.Path = path.Join(url.Path, ":batch")
+
+	return http.NewRequest("POST", url.String(), body)
 }
 
 func (f *formatter) FormatCommand(cmd ex.Command) (*http.Request, error) {
@@ -79,19 +108,6 @@ func (f *formatter) FormatRequest(cmd ex.Command) (*http.Request, error) {
 	}
 
 	return r, nil
-}
-
-func (f *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
-
-	body, err := f.FormatBody(batch)
-	if err != nil {
-		return nil, err
-	}
-
-	url := *f.URL
-	url.Path = path.Join(url.Path, ":batch")
-
-	return http.NewRequest("POST", url.String(), body)
 }
 
 func (f *formatter) FormatParams(cmd ex.Command) (url.Values, error) {

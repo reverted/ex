@@ -141,6 +141,9 @@ func (s *server) serve(r *http.Request) ([]map[string]interface{}, error) {
 	}
 
 	switch c := req.(type) {
+	case ex.Statement:
+		return s.batch(r.Context(), ex.Bulk(c))
+
 	case ex.Command:
 		return s.batch(r.Context(), ex.Bulk(c))
 
@@ -157,21 +160,25 @@ func (s *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]interf
 	var err error
 	var reqs []ex.Request
 
-	for key, _ := range s.IncludeKeys {
+	for key := range s.IncludeKeys {
 		if value := ctx.Value(key); value != "" {
 			reqs = append(reqs, ex.Exec(fmt.Sprintf("SET @%s = '%v'", key, value)))
 		}
 	}
 
 	for _, req := range batch.Requests {
-		if cmd, ok := req.(ex.Command); ok {
+		switch c := req.(type) {
+		case ex.Statement:
+			reqs = append(reqs, c)
+
+		case ex.Command:
 			for _, i := range s.Interceptors {
-				cmd, err = i.Intercept(ctx, cmd)
+				c, err = i.Intercept(ctx, c)
 				if err != nil {
 					return nil, err
 				}
 			}
-			reqs = append(reqs, cmd)
+			reqs = append(reqs, c)
 		}
 	}
 

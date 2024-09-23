@@ -26,8 +26,8 @@ func (b *Batch) UnmarshalJSON(bytes []byte) error {
 }
 
 type Statement struct {
-	Stmt string
-	Args []interface{}
+	Stmt string        `json:"stmt,omitempty"`
+	Args []interface{} `json:"args,omitempty"`
 }
 
 func (s Statement) exec() {}
