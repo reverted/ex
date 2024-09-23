@@ -344,7 +344,6 @@ func (e *executor) queryContext(ctx context.Context, tx Tx, stmt ex.Statement) (
 	return tx.QueryContext(spanCtx, stmt.Stmt, stmt.Args...)
 }
 
-// codeql [go/sql-injection]: suppress warning
 func (e *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement) (Result, error) {
 
 	span, spanCtx := e.Tracer.StartSpan(ctx, "exec", ex.SpanTag{Key: "stmt", Value: stmt.Stmt})
