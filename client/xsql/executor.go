@@ -318,6 +318,11 @@ func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement, data inte
 	span, spanCtx := e.Tracer.StartSpan(ctx, "stmt")
 	defer span.Finish()
 
+	if data == nil {
+		_, err := e.execContext(spanCtx, tx, stmt)
+		return err
+	}
+
 	rows, err := e.queryContext(spanCtx, tx, stmt)
 	if err != nil {
 		return err
@@ -325,11 +330,7 @@ func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement, data inte
 
 	defer rows.Close()
 
-	if data != nil {
-		return e.Scanner.Scan(rows, data)
-	} else {
-		return nil
-	}
+	return e.Scanner.Scan(rows, data)
 }
 
 func (e *executor) queryContext(ctx context.Context, tx Tx, stmt ex.Statement) (Rows, error) {
