@@ -251,8 +251,12 @@ func (s *scanner) scanString(value string) interface{} {
 func (s *scanner) scanNullString(value string, dbTypeName string) (interface{}, error) {
 	switch dbTypeName {
 	case "JSON":
-		var data interface{}
-		return data, json.Unmarshal([]byte(value), &data)
+		if value == "" {
+			return nil, nil
+		} else {
+			var data interface{}
+			return data, json.Unmarshal([]byte(value), &data)
+		}
 	default:
 		return s.scanString(value), nil
 	}
