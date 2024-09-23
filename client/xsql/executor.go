@@ -151,7 +151,7 @@ func (e *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data in
 
 	switch c := req.(type) {
 	case ex.Statement:
-		return e.stmt(ctx, tx, c)
+		return e.stmt(ctx, tx, c, data)
 
 	case ex.Command:
 		return e.cmd(ctx, tx, c, data)
@@ -225,7 +225,7 @@ func (e *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data inter
 		}
 	}
 
-	return e.stmt(spanCtx, tx, stmt)
+	return e.stmt(spanCtx, tx, stmt, data)
 }
 
 func (e *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
@@ -274,7 +274,7 @@ func (e *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data inter
 	span, spanCtx := e.Tracer.StartSpan(ctx, "update")
 	defer span.Finish()
 
-	if err := e.stmt(spanCtx, tx, stmt); err != nil {
+	if err := e.stmt(spanCtx, tx, stmt, data); err != nil {
 		return err
 	}
 
@@ -313,10 +313,24 @@ func (e *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data interf
 	return nil
 }
 
-func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement) error {
+func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement, data interface{}) error {
 
 	span, spanCtx := e.Tracer.StartSpan(ctx, "stmt")
 	defer span.Finish()
+
+	compare := strings.TrimSpace(strings.ToUpper(stmt.Stmt))
+	isSelect := strings.HasPrefix(compare, "SELECT")
+
+	if isSelect {
+		rows, err := e.queryContext(spanCtx, tx, stmt)
+		if err != nil {
+			return err
+		}
+
+		defer rows.Close()
+
+		return e.Scanner.Scan(rows, data)
+	}
 
 	_, err := e.execContext(spanCtx, tx, stmt)
 	return err
