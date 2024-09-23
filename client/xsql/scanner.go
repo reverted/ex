@@ -148,7 +148,12 @@ func (s *scanner) scanMap(rows Rows, item map[string]interface{}) error {
 			v = v.Elem()
 		}
 
-		item[t.Name()] = s.scanValue(v.Interface(), t.DatabaseTypeName())
+		value, err := s.scanValue(v.Interface(), t.DatabaseTypeName())
+		if err != nil {
+			return err
+		}
+
+		item[t.Name()] = value
 	}
 
 	return nil
@@ -174,41 +179,41 @@ func (s *scanner) scanValues(rows Rows) ([]ColumnType, []interface{}, error) {
 	return types, values, nil
 }
 
-func (s *scanner) scanValue(value interface{}, dbTypeName string) interface{} {
+func (s *scanner) scanValue(value interface{}, dbTypeName string) (interface{}, error) {
 
 	switch v := value.(type) {
 	case sql.NullString:
 		return s.scanNullString(v.String, dbTypeName)
 
 	case sql.NullInt32:
-		return int(v.Int32)
+		return int(v.Int32), nil
 
 	case sql.NullInt64:
-		return int(v.Int64)
+		return int(v.Int64), nil
 
 	case sql.NullFloat64:
-		return v.Float64
+		return v.Float64, nil
 
 	case sql.NullBool:
-		return v.Bool
+		return v.Bool, nil
 
 	case sql.NullTime:
-		return s.scanNullTime(v.Time, dbTypeName)
+		return s.scanNullTime(v.Time, dbTypeName), nil
 
 	case sql.RawBytes:
 		return s.scanRawBytes(string(v), dbTypeName)
 
 	case int32:
-		return int(v)
+		return int(v), nil
 
 	case int64:
-		return int(v)
+		return int(v), nil
 
 	case string:
-		return s.scanString(string(v))
+		return s.scanString(string(v)), nil
 
 	default:
-		return value
+		return value, nil
 	}
 }
 
@@ -221,15 +226,14 @@ func (s *scanner) scanNullTime(t time.Time, dbTypeName string) interface{} {
 	}
 }
 
-func (s *scanner) scanRawBytes(value string, dbTypeName string) interface{} {
+func (s *scanner) scanRawBytes(value string, dbTypeName string) (interface{}, error) {
 	switch dbTypeName {
 	case "VARCHAR", "TEXT":
-		return s.scanString(value)
+		return s.scanString(value), nil
 	case "DECIMAL":
-		val, _ := strconv.ParseFloat(value, 64)
-		return val
+		return strconv.ParseFloat(value, 64)
 	default:
-		return value
+		return value, nil
 	}
 }
 
@@ -244,14 +248,13 @@ func (s *scanner) scanString(value string) interface{} {
 	}
 }
 
-func (s *scanner) scanNullString(value string, dbTypeName string) interface{} {
+func (s *scanner) scanNullString(value string, dbTypeName string) (interface{}, error) {
 	switch dbTypeName {
 	case "JSON":
 		var data interface{}
-		json.Unmarshal([]byte(value), &data)
-		return data
+		return data, json.Unmarshal([]byte(value), &data)
 	default:
-		return s.scanString(value)
+		return s.scanString(value), nil
 	}
 }
 
