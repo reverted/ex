@@ -325,7 +325,11 @@ func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement, data inte
 
 	defer rows.Close()
 
-	return e.Scanner.Scan(rows, data)
+	if data != nil {
+		return e.Scanner.Scan(rows, data)
+	} else {
+		return nil
+	}
 }
 
 func (e *executor) queryContext(ctx context.Context, tx Tx, stmt ex.Statement) (Rows, error) {
