@@ -33,13 +33,15 @@ var _ = Describe("Formatter", func() {
 		res, err = formatter.Format(req)
 	})
 
-	Context("when the request is not supported", func() {
+	Context("when the request is an exec statement", func() {
 		BeforeEach(func() {
 			req = ex.Exec("DROP TABLE some-table")
 		})
 
-		It("errors", func() {
-			Expect(err).To(HaveOccurred())
+		It("formats the request", func() {
+			Expect(res.Method).To(Equal("POST"))
+			Expect(res.URL.String()).To(Equal("http://some.url/:exec"))
+			Expect(io.ReadAll(res.Body)).To(MatchJSON(`{"stmt": "DROP TABLE some-table"}`))
 		})
 	})
 
