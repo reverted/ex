@@ -61,32 +61,32 @@ type Result interface {
 type opt func(*executor)
 
 func WithMysqlFormatter() opt {
-	return func(self *executor) {
-		self.Formatter = NewMysqlFormatter()
+	return func(e *executor) {
+		e.Formatter = NewMysqlFormatter()
 	}
 }
 
 func WithFormatter(formatter Formatter) opt {
-	return func(self *executor) {
-		self.Formatter = formatter
+	return func(e *executor) {
+		e.Formatter = formatter
 	}
 }
 
 func WithScanner(scanner Scanner) opt {
-	return func(self *executor) {
-		self.Scanner = scanner
+	return func(e *executor) {
+		e.Scanner = scanner
 	}
 }
 
 func WithTracer(tracer Tracer) opt {
-	return func(self *executor) {
-		self.Tracer = tracer
+	return func(e *executor) {
+		e.Tracer = tracer
 	}
 }
 
 func WithConnection(connection Connection) opt {
-	return func(self *executor) {
-		self.Connection = connection
+	return func(e *executor) {
+		e.Connection = connection
 	}
 }
 
@@ -119,8 +119,8 @@ type executor struct {
 	Tracer
 }
 
-func (self *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
-	err := self.execute(ctx, req, data)
+func (e *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
+	err := e.execute(ctx, req, data)
 
 	switch t := err.(type) {
 	case *mysql.MySQLError:
@@ -131,116 +131,116 @@ func (self *executor) Execute(ctx context.Context, req ex.Request, data interfac
 	}
 }
 
-func (self *executor) execute(ctx context.Context, req ex.Request, data interface{}) error {
+func (e *executor) execute(ctx context.Context, req ex.Request, data interface{}) error {
 
-	tx, err := self.Connection.Begin()
+	tx, err := e.Connection.Begin()
 	if err != nil {
 		return err
 	}
 
 	defer tx.Rollback()
 
-	if err = self.executeTx(ctx, tx, req, data); err != nil {
+	if err = e.executeTx(ctx, tx, req, data); err != nil {
 		return err
 	}
 
 	return tx.Commit()
 }
 
-func (self *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data interface{}) error {
+func (e *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data interface{}) error {
 
 	switch c := req.(type) {
 	case ex.Statement:
-		return self.stmt(ctx, tx, c)
+		return e.stmt(ctx, tx, c)
 
 	case ex.Command:
-		return self.cmd(ctx, tx, c, data)
+		return e.cmd(ctx, tx, c, data)
 
 	case ex.Batch:
-		return self.batch(ctx, tx, c, data)
+		return e.batch(ctx, tx, c, data)
 
 	default:
-		return errors.New("Unsupported req")
+		return errors.New("unsupported req")
 	}
 }
 
-func (self *executor) cmd(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) cmd(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
 	switch strings.ToUpper(cmd.Action) {
 	case "QUERY":
-		return self.query(ctx, tx, cmd, data)
+		return e.query(ctx, tx, cmd, data)
 
 	case "DELETE":
-		return self.delete(ctx, tx, cmd, data)
+		return e.delete(ctx, tx, cmd, data)
 
 	case "INSERT":
-		return self.insert(ctx, tx, cmd, data)
+		return e.insert(ctx, tx, cmd, data)
 
 	case "UPDATE":
-		return self.update(ctx, tx, cmd, data)
+		return e.update(ctx, tx, cmd, data)
 
 	default:
-		return errors.New("Unsupported cmd")
+		return errors.New("unsupported cmd")
 	}
 }
 
-func (self *executor) query(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) query(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
-	stmt, err := self.Formatter.Format(cmd)
+	stmt, err := e.Formatter.Format(cmd)
 	if err != nil {
 		return err
 	}
 
-	self.Logger.Infof(">>> %v", stmt)
+	e.Logger.Infof(">>> %v", stmt)
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "query")
+	span, spanCtx := e.Tracer.StartSpan(ctx, "query")
 	defer span.Finish()
 
-	rows, err := self.queryContext(spanCtx, tx, stmt)
+	rows, err := e.queryContext(spanCtx, tx, stmt)
 	if err != nil {
 		return err
 	}
 
 	defer rows.Close()
 
-	return self.Scanner.Scan(rows, data)
+	return e.Scanner.Scan(rows, data)
 }
 
-func (self *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
-	stmt, err := self.Formatter.Format(cmd)
+	stmt, err := e.Formatter.Format(cmd)
 	if err != nil {
 		return err
 	}
 
-	self.Logger.Infof(">>> %v", stmt)
+	e.Logger.Infof(">>> %v", stmt)
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "delete")
+	span, spanCtx := e.Tracer.StartSpan(ctx, "delete")
 	defer span.Finish()
 
 	if data != nil {
 		q := ex.Query(cmd.Resource, cmd.Where, cmd.Limit, cmd.Offset)
-		if err := self.query(spanCtx, tx, q, data); err != nil {
+		if err := e.query(spanCtx, tx, q, data); err != nil {
 			return err
 		}
 	}
 
-	return self.stmt(spanCtx, tx, stmt)
+	return e.stmt(spanCtx, tx, stmt)
 }
 
-func (self *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
-	stmt, err := self.Formatter.Format(cmd)
+	stmt, err := e.Formatter.Format(cmd)
 	if err != nil {
 		return err
 	}
 
-	self.Logger.Infof(">>> %v", stmt)
+	e.Logger.Infof(">>> %v", stmt)
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "insert")
+	span, spanCtx := e.Tracer.StartSpan(ctx, "insert")
 	defer span.Finish()
 
-	res, err := self.execContext(spanCtx, tx, stmt)
+	res, err := e.execContext(spanCtx, tx, stmt)
 	if err != nil {
 		return err
 	}
@@ -252,59 +252,59 @@ func (self *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data in
 		}
 
 		if id == 0 {
-			return self.Scanner.Scan(emptyRows{}, data)
+			return e.Scanner.Scan(emptyRows{}, data)
 		}
 
 		q := ex.Query(cmd.Resource, ex.Where{"id": id})
-		return self.query(spanCtx, tx, q, data)
+		return e.query(spanCtx, tx, q, data)
 	}
 
 	return nil
 }
 
-func (self *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
 
-	stmt, err := self.Formatter.Format(cmd)
+	stmt, err := e.Formatter.Format(cmd)
 	if err != nil {
 		return err
 	}
 
-	self.Logger.Infof(">>> %v", stmt)
+	e.Logger.Infof(">>> %v", stmt)
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "update")
+	span, spanCtx := e.Tracer.StartSpan(ctx, "update")
 	defer span.Finish()
 
-	if err := self.stmt(spanCtx, tx, stmt); err != nil {
+	if err := e.stmt(spanCtx, tx, stmt); err != nil {
 		return err
 	}
 
 	if data != nil {
 		where := cmd.Where
-		for key, _ := range cmd.Where {
+		for key := range cmd.Where {
 			if updated, ok := cmd.Values[key]; ok {
 				where[key] = updated
 			}
 		}
 
 		q := ex.Query(cmd.Resource, where, cmd.Limit, cmd.Offset)
-		return self.query(spanCtx, tx, q, data)
+		return e.query(spanCtx, tx, q, data)
 	}
 
 	return nil
 }
 
-func (self *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data interface{}) error {
+func (e *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data interface{}) error {
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "batch")
+	span, spanCtx := e.Tracer.StartSpan(ctx, "batch")
 	defer span.Finish()
 
 	for i, c := range batch.Requests {
 		if i < len(batch.Requests)-1 {
-			if err := self.executeTx(spanCtx, tx, c, nil); err != nil {
+			if err := e.executeTx(spanCtx, tx, c, nil); err != nil {
 				return err
 			}
 		} else {
-			if err := self.executeTx(spanCtx, tx, c, data); err != nil {
+			if err := e.executeTx(spanCtx, tx, c, data); err != nil {
 				return err
 			}
 		}
@@ -313,26 +313,26 @@ func (self *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data int
 	return nil
 }
 
-func (self *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement) error {
+func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement) error {
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "stmt")
+	span, spanCtx := e.Tracer.StartSpan(ctx, "stmt")
 	defer span.Finish()
 
-	_, err := self.execContext(spanCtx, tx, stmt)
+	_, err := e.execContext(spanCtx, tx, stmt)
 	return err
 }
 
-func (self *executor) queryContext(ctx context.Context, tx Tx, stmt ex.Statement) (Rows, error) {
+func (e *executor) queryContext(ctx context.Context, tx Tx, stmt ex.Statement) (Rows, error) {
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "exec", ex.SpanTag{"stmt", stmt.Stmt})
+	span, spanCtx := e.Tracer.StartSpan(ctx, "exec", ex.SpanTag{Key: "stmt", Value: stmt.Stmt})
 	defer span.Finish()
 
 	return tx.QueryContext(spanCtx, stmt.Stmt, stmt.Args...)
 }
 
-func (self *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement) (Result, error) {
+func (e *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement) (Result, error) {
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "exec", ex.SpanTag{"stmt", stmt.Stmt})
+	span, spanCtx := e.Tracer.StartSpan(ctx, "exec", ex.SpanTag{Key: "stmt", Value: stmt.Stmt})
 	defer span.Finish()
 
 	return tx.ExecContext(spanCtx, stmt.Stmt, stmt.Args...)
@@ -340,17 +340,17 @@ func (self *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement)
 
 type noopSpan struct{}
 
-func (self noopSpan) Finish() {}
+func (s noopSpan) Finish() {}
 
 type noopTracer struct{}
 
-func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+func (t noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
 	return noopSpan{}, ctx
 }
 
-func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+func (t noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 }
 
-func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+func (t noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
 }

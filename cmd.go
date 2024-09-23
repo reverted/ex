@@ -15,14 +15,14 @@ type Batch struct {
 	Requests []Request
 }
 
-func (self Batch) exec() {}
+func (b Batch) exec() {}
 
-func (self Batch) MarshalJSON() ([]byte, error) {
-	return json.Marshal(self.Requests)
+func (b Batch) MarshalJSON() ([]byte, error) {
+	return json.Marshal(b.Requests)
 }
 
-func (self *Batch) UnmarshalJSON(b []byte) error {
-	return json.Unmarshal(b, &self.Requests)
+func (b *Batch) UnmarshalJSON(bytes []byte) error {
+	return json.Unmarshal(bytes, &b.Requests)
 }
 
 type Statement struct {
@@ -30,7 +30,7 @@ type Statement struct {
 	Args []interface{}
 }
 
-func (self Statement) exec() {}
+func (s Statement) exec() {}
 
 type Command struct {
 	Action     string
@@ -43,36 +43,36 @@ type Command struct {
 	OnConflict OnConflict
 }
 
-func (self Command) exec() {}
+func (c Command) exec() {}
 
-func (self Command) MarshalJSON() ([]byte, error) {
+func (c Command) MarshalJSON() ([]byte, error) {
 
 	fields := map[string]interface{}{
-		"action":   self.Action,
-		"resource": self.Resource,
-		"where":    format(self.Where),
-		"values":   self.Values,
-		"order":    strings.Join(self.Order, ","),
-		"limit":    self.Limit.Arg,
-		"offset":   self.Offset.Arg,
+		"action":   c.Action,
+		"resource": c.Resource,
+		"where":    format(c.Where),
+		"values":   c.Values,
+		"order":    strings.Join(c.Order, ","),
+		"limit":    c.Limit.Arg,
+		"offset":   c.Offset.Arg,
 	}
 
-	if c := self.OnConflict.Update; len(c) > 0 {
+	if c := c.OnConflict.Update; len(c) > 0 {
 		fields["on_conflict_update"] = strings.Join(c, ",")
 	}
 
-	if c := self.OnConflict.Ignore; c != "" {
+	if c := c.OnConflict.Ignore; c != "" {
 		fields["on_conflict_ignore"] = c
 	}
 
-	if c := self.OnConflict.Error; c != "" {
+	if c := c.OnConflict.Error; c != "" {
 		fields["on_conflict_error"] = c
 	}
 
 	return json.Marshal(fields)
 }
 
-func (self *Command) UnmarshalJSON(b []byte) error {
+func (c *Command) UnmarshalJSON(b []byte) error {
 	var contents map[string]interface{}
 	err := json.Unmarshal(b, &contents)
 	if err != nil {
@@ -121,13 +121,13 @@ func (self *Command) UnmarshalJSON(b []byte) error {
 		opts = append(opts, OnConflictError(conflictError))
 	}
 
-	c := cmd(
+	command := cmd(
 		contents["action"].(string),
 		contents["resource"].(string),
 		opts...,
 	)
 
-	*self = c
+	*c = command
 	return nil
 }
 
@@ -156,7 +156,7 @@ func parse(args map[string]interface{}) map[string]interface{} {
 func Format(k string, v interface{}) (string, interface{}, error) {
 	switch value := v.(type) {
 	case Literal:
-		return fmt.Sprintf("%s", k), value.Arg, nil
+		return k, value.Arg, nil
 	case Eq:
 		return fmt.Sprintf("%s:eq", k), value.Arg, nil
 	case NotEq:
@@ -260,7 +260,7 @@ func parseNotIn(k, v string) (string, interface{}, error) {
 func parseBtwn(k, v string) (string, interface{}, error) {
 	parts := strings.Split(v, ",")
 	if len(parts) != 2 {
-		return "", nil, errors.New("Unsuported 'btwn' args")
+		return "", nil, errors.New("unsuported 'btwn' args")
 	}
 	return k, Btwn{parts[0], parts[1]}, nil
 }
@@ -268,7 +268,7 @@ func parseBtwn(k, v string) (string, interface{}, error) {
 func parseNotBtwn(k, v string) (string, interface{}, error) {
 	parts := strings.Split(v, ",")
 	if len(parts) != 2 {
-		return "", nil, errors.New("Unsuported 'not_btwn' args")
+		return "", nil, errors.New("unsuported 'not_btwn' args")
 	}
 	return k, NotBtwn{parts[0], parts[1]}, nil
 }

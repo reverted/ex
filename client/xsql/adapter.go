@@ -39,8 +39,8 @@ type conn struct {
 	*sql.DB
 }
 
-func (self *conn) Begin() (Tx, error) {
-	t, err := self.DB.Begin()
+func (c *conn) Begin() (Tx, error) {
+	t, err := c.DB.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -51,32 +51,32 @@ type tx struct {
 	*sql.Tx
 }
 
-func (self *tx) QueryContext(ctx context.Context, stmt string, args ...interface{}) (Rows, error) {
-	r, err := self.Tx.QueryContext(ctx, stmt, args...)
+func (t *tx) QueryContext(ctx context.Context, stmt string, args ...interface{}) (Rows, error) {
+	r, err := t.Tx.QueryContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
 	}
 	return &rows{r}, nil
 }
 
-func (self *tx) Query(stmt string, args ...interface{}) (Rows, error) {
-	r, err := self.Tx.Query(stmt, args...)
+func (t *tx) Query(stmt string, args ...interface{}) (Rows, error) {
+	r, err := t.Tx.Query(stmt, args...)
 	if err != nil {
 		return nil, err
 	}
 	return &rows{r}, nil
 }
 
-func (self *tx) ExecContext(ctx context.Context, stmt string, args ...interface{}) (Result, error) {
-	r, err := self.Tx.ExecContext(ctx, stmt, args...)
+func (t *tx) ExecContext(ctx context.Context, stmt string, args ...interface{}) (Result, error) {
+	r, err := t.Tx.ExecContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
 	}
 	return &result{r}, nil
 }
 
-func (self *tx) Exec(stmt string, args ...interface{}) (Result, error) {
-	r, err := self.Tx.Exec(stmt, args...)
+func (t *tx) Exec(stmt string, args ...interface{}) (Result, error) {
+	r, err := t.Tx.Exec(stmt, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +87,10 @@ type rows struct {
 	*sql.Rows
 }
 
-func (self *rows) ColumnTypes() ([]ColumnType, error) {
+func (r *rows) ColumnTypes() ([]ColumnType, error) {
 	var types []ColumnType
 
-	ts, err := self.Rows.ColumnTypes()
+	ts, err := r.Rows.ColumnTypes()
 	if err != nil {
 		return nil, err
 	}
@@ -108,22 +108,22 @@ type result struct {
 
 type emptyRows struct{}
 
-func (self emptyRows) Err() error {
+func (e emptyRows) Err() error {
 	return nil
 }
 
-func (self emptyRows) Next() bool {
+func (e emptyRows) Next() bool {
 	return false
 }
 
-func (self emptyRows) ColumnTypes() ([]ColumnType, error) {
+func (e emptyRows) ColumnTypes() ([]ColumnType, error) {
 	return nil, nil
 }
 
-func (self emptyRows) Scan(...interface{}) error {
+func (e emptyRows) Scan(...interface{}) error {
 	return nil
 }
 
-func (self emptyRows) Close() error {
+func (e emptyRows) Close() error {
 	return nil
 }

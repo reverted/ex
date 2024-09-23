@@ -212,7 +212,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"id": ex.Eq{1}})
+							req = ex.Query("resources", ex.Where{"id": ex.Eq{Arg: 1}})
 						})
 
 						It("returns queried results", func() {
@@ -224,7 +224,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"id": ex.NotEq{1}})
+							req = ex.Query("resources", ex.Where{"id": ex.NotEq{Arg: 1}})
 						})
 
 						It("returns queried results", func() {
@@ -237,7 +237,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'gt' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"id": ex.Gt{2}})
+							req = ex.Query("resources", ex.Where{"id": ex.Gt{Arg: 2}})
 						})
 
 						It("returns queried results", func() {
@@ -249,7 +249,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'gt_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"id": ex.GtEq{2}})
+							req = ex.Query("resources", ex.Where{"id": ex.GtEq{Arg: 2}})
 						})
 
 						It("returns queried results", func() {
@@ -262,7 +262,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'lt' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"id": ex.Lt{3}})
+							req = ex.Query("resources", ex.Where{"id": ex.Lt{Arg: 3}})
 						})
 
 						It("returns queried results", func() {
@@ -275,7 +275,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'lt_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"id": ex.LtEq{3}})
+							req = ex.Query("resources", ex.Where{"id": ex.LtEq{Arg: 3}})
 						})
 
 						It("returns queried results", func() {
@@ -289,7 +289,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"name": ex.Like{"2"}})
+							req = ex.Query("resources", ex.Where{"name": ex.Like{Arg: "2"}})
 						})
 
 						It("returns queried results", func() {
@@ -301,7 +301,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"name": ex.NotLike{"2"}})
+							req = ex.Query("resources", ex.Where{"name": ex.NotLike{Arg: "2"}})
 						})
 
 						It("returns queried results", func() {
@@ -339,7 +339,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'between' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"id": ex.Btwn{2, 3}})
+							req = ex.Query("resources", ex.Where{"id": ex.Btwn{Start: 2, End: 3}})
 						})
 
 						It("returns queried results", func() {
@@ -352,7 +352,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_between' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"id": ex.NotBtwn{2, 3}})
+							req = ex.Query("resources", ex.Where{"id": ex.NotBtwn{Start: 2, End: 3}})
 						})
 
 						It("returns queried results", func() {
@@ -378,7 +378,7 @@ var _ = Describe("Client", func() {
 
 					Context("with limit clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Limit{1})
+							req = ex.Query("resources", ex.Limit{Arg: 1})
 						})
 
 						It("returns queried results", func() {
@@ -390,7 +390,7 @@ var _ = Describe("Client", func() {
 
 					Context("with limit and offset clauses", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Limit{1}, ex.Offset{1})
+							req = ex.Query("resources", ex.Limit{Arg: 1}, ex.Offset{Arg: 1})
 						})
 
 						It("returns queried results", func() {
@@ -402,7 +402,7 @@ var _ = Describe("Client", func() {
 
 					Context("with offset (no limit) clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Offset{1})
+							req = ex.Query("resources", ex.Offset{Arg: 1})
 						})
 
 						It("errors", func() {
@@ -489,7 +489,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"id": ex.Eq{1}})
+							req = ex.Delete("resources", ex.Where{"id": ex.Eq{Arg: 1}})
 						})
 
 						It("returns deleted results", func() {
@@ -508,7 +508,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"id": ex.NotEq{1}})
+							req = ex.Delete("resources", ex.Where{"id": ex.NotEq{Arg: 1}})
 						})
 
 						It("returns deleted results", func() {
@@ -527,7 +527,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'gt' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"id": ex.Gt{2}})
+							req = ex.Delete("resources", ex.Where{"id": ex.Gt{Arg: 2}})
 						})
 
 						It("returns deleted results", func() {
@@ -546,7 +546,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'gt_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"id": ex.GtEq{2}})
+							req = ex.Delete("resources", ex.Where{"id": ex.GtEq{Arg: 2}})
 						})
 
 						It("returns deleted results", func() {
@@ -565,7 +565,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'lt' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"id": ex.Lt{3}})
+							req = ex.Delete("resources", ex.Where{"id": ex.Lt{Arg: 3}})
 						})
 
 						It("returns deleted results", func() {
@@ -584,7 +584,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'lt_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"id": ex.LtEq{3}})
+							req = ex.Delete("resources", ex.Where{"id": ex.LtEq{Arg: 3}})
 						})
 
 						It("returns deleted results", func() {
@@ -602,7 +602,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"name": ex.Like{"2"}})
+							req = ex.Delete("resources", ex.Where{"name": ex.Like{Arg: "2"}})
 						})
 
 						It("returns deleted results", func() {
@@ -621,7 +621,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"name": ex.NotLike{"2"}})
+							req = ex.Delete("resources", ex.Where{"name": ex.NotLike{Arg: "2"}})
 						})
 
 						It("returns deleted results", func() {
@@ -678,7 +678,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'between' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"id": ex.Btwn{2, 3}})
+							req = ex.Delete("resources", ex.Where{"id": ex.Btwn{Start: 2, End: 3}})
 						})
 
 						It("returns deleted results", func() {
@@ -697,7 +697,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_between' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"id": ex.NotBtwn{2, 3}})
+							req = ex.Delete("resources", ex.Where{"id": ex.NotBtwn{Start: 2, End: 3}})
 						})
 
 						It("returns deleted results", func() {
@@ -716,7 +716,7 @@ var _ = Describe("Client", func() {
 
 					Context("with limit clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Limit{1})
+							req = ex.Delete("resources", ex.Limit{Arg: 1})
 						})
 
 						It("returns deleted results", func() {
@@ -817,7 +817,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Eq{1}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Eq{Arg: 1}})
 						})
 
 						It("returns modified results", func() {
@@ -837,7 +837,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.NotEq{1}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.NotEq{Arg: 1}})
 						})
 
 						It("returns modified results", func() {
@@ -858,7 +858,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'gt' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Gt{2}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Gt{Arg: 2}})
 						})
 
 						It("returns modified results", func() {
@@ -878,7 +878,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'gt_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.GtEq{2}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.GtEq{Arg: 2}})
 						})
 
 						It("returns modified results", func() {
@@ -899,7 +899,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'lt' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Lt{3}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Lt{Arg: 3}})
 						})
 
 						It("returns modified results", func() {
@@ -920,7 +920,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'lt_eq' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.LtEq{3}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.LtEq{Arg: 3}})
 						})
 
 						It("returns modified results", func() {
@@ -942,7 +942,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Like{"2"}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Like{Arg: "2"}})
 						})
 
 						It("returns modified results", func() {
@@ -962,7 +962,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.NotLike{"2"}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.NotLike{Arg: "2"}})
 						})
 
 						It("returns modified results", func() {
@@ -1024,7 +1024,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'between' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Btwn{2, 3}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Btwn{Start: 2, End: 3}})
 						})
 
 						It("returns modified results", func() {
@@ -1045,7 +1045,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_between' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.NotBtwn{2, 3}})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.NotBtwn{Start: 2, End: 3}})
 						})
 
 						It("returns modified results", func() {
@@ -1065,7 +1065,7 @@ var _ = Describe("Client", func() {
 
 					Context("with limit clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Limit{2})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Limit{Arg: 2})
 						})
 
 						It("returns modified results", func() {
@@ -1138,10 +1138,10 @@ var _ = Describe("Client", func() {
 					Context("modifying existing records", func() {
 						BeforeEach(func() {
 							req = ex.Bulk(
-								ex.Delete("resources", ex.Where{"name": ex.Eq{"resource-1"}}),
+								ex.Delete("resources", ex.Where{"name": ex.Eq{Arg: "resource-1"}}),
 								ex.Insert("resources", ex.Values{"name": "resource-4"}),
 								ex.Insert("resources", ex.Values{"name": "resource-5"}),
-								ex.Update("resources", ex.Values{"name": "resource-6"}, ex.Where{"name": ex.Like{"resource-5"}}),
+								ex.Update("resources", ex.Values{"name": "resource-6"}, ex.Where{"name": ex.Like{Arg: "resource-5"}}),
 								ex.Query("resources", ex.Where{"name": "resource-2"}),
 							)
 						})
@@ -1185,7 +1185,7 @@ var _ = Describe("Client", func() {
 			var data result
 
 			BeforeEach(func() {
-				req := ex.Query("resources", ex.Limit{1})
+				req := ex.Query("resources", ex.Limit{Arg: 1})
 				err = sqlClient.Exec(req, &data)
 			})
 
@@ -1204,7 +1204,7 @@ var _ = Describe("Client", func() {
 			var data *result
 
 			BeforeEach(func() {
-				req := ex.Query("resources", ex.Limit{1})
+				req := ex.Query("resources", ex.Limit{Arg: 1})
 				err = sqlClient.Exec(req, &data)
 			})
 
@@ -1223,7 +1223,7 @@ var _ = Describe("Client", func() {
 			var data map[string]interface{}
 
 			BeforeEach(func() {
-				req := ex.Query("resources", ex.Limit{1})
+				req := ex.Query("resources", ex.Limit{Arg: 1})
 				err = sqlClient.Exec(req, &data)
 			})
 

@@ -2,7 +2,7 @@ package server_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -78,7 +78,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Query("resources", ex.Limit{1})))
+				Expect(res).To(Equal(ex.Query("resources", ex.Limit{Arg: 1})))
 			})
 		})
 
@@ -98,7 +98,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Query("resources", ex.Offset{10})))
+				Expect(res).To(Equal(ex.Query("resources", ex.Offset{Arg: 10})))
 			})
 		})
 
@@ -144,7 +144,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Delete("resources", ex.Limit{1})))
+				Expect(res).To(Equal(ex.Delete("resources", ex.Limit{Arg: 1})))
 			})
 		})
 
@@ -166,7 +166,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has values", func() {
 			BeforeEach(func() {
-				req.Body = ioutil.NopCloser(bytes.NewBufferString(`{"key": "value"}`))
+				req.Body = io.NopCloser(bytes.NewBufferString(`{"key": "value"}`))
 			})
 
 			It("parses the request", func() {
@@ -212,7 +212,7 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has values", func() {
 			BeforeEach(func() {
-				req.Body = ioutil.NopCloser(bytes.NewBufferString(`{"key": "value"}`))
+				req.Body = io.NopCloser(bytes.NewBufferString(`{"key": "value"}`))
 			})
 
 			It("parses the request", func() {
@@ -248,7 +248,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Update("resources", ex.Limit{1})))
+				Expect(res).To(Equal(ex.Update("resources", ex.Limit{Arg: 1})))
 			})
 		})
 
@@ -289,20 +289,20 @@ var _ = Describe("Parser", func() {
 			cmd, ok := res.(ex.Command)
 			Expect(ok).To(BeTrue())
 
-			Expect(cmd.Where["key-a"]).To(Equal(ex.Eq{"value"}))
-			Expect(cmd.Where["key-b"]).To(Equal(ex.NotEq{"value"}))
-			Expect(cmd.Where["key-c"]).To(Equal(ex.Gt{"value"}))
-			Expect(cmd.Where["key-d"]).To(Equal(ex.GtEq{"value"}))
-			Expect(cmd.Where["key-e"]).To(Equal(ex.Lt{"value"}))
-			Expect(cmd.Where["key-f"]).To(Equal(ex.LtEq{"value"}))
-			Expect(cmd.Where["key-g"]).To(Equal(ex.Is{"value"}))
-			Expect(cmd.Where["key-i"]).To(Equal(ex.IsNot{"value"}))
-			Expect(cmd.Where["key-j"]).To(Equal(ex.Like{"value"}))
-			Expect(cmd.Where["key-k"]).To(Equal(ex.NotLike{"value"}))
+			Expect(cmd.Where["key-a"]).To(Equal(ex.Eq{Arg: "value"}))
+			Expect(cmd.Where["key-b"]).To(Equal(ex.NotEq{Arg: "value"}))
+			Expect(cmd.Where["key-c"]).To(Equal(ex.Gt{Arg: "value"}))
+			Expect(cmd.Where["key-d"]).To(Equal(ex.GtEq{Arg: "value"}))
+			Expect(cmd.Where["key-e"]).To(Equal(ex.Lt{Arg: "value"}))
+			Expect(cmd.Where["key-f"]).To(Equal(ex.LtEq{Arg: "value"}))
+			Expect(cmd.Where["key-g"]).To(Equal(ex.Is{Arg: "value"}))
+			Expect(cmd.Where["key-i"]).To(Equal(ex.IsNot{Arg: "value"}))
+			Expect(cmd.Where["key-j"]).To(Equal(ex.Like{Arg: "value"}))
+			Expect(cmd.Where["key-k"]).To(Equal(ex.NotLike{Arg: "value"}))
 			Expect(cmd.Where["key-l"]).To(Equal(ex.In{"value1", "value2"}))
 			Expect(cmd.Where["key-m"]).To(Equal(ex.NotIn{"value1", "value2"}))
-			Expect(cmd.Where["key-n"]).To(Equal(ex.Btwn{"value1", "value2"}))
-			Expect(cmd.Where["key-o"]).To(Equal(ex.NotBtwn{"value1", "value2"}))
+			Expect(cmd.Where["key-n"]).To(Equal(ex.Btwn{Start: "value1", End: "value2"}))
+			Expect(cmd.Where["key-o"]).To(Equal(ex.NotBtwn{Start: "value1", End: "value2"}))
 		})
 	})
 })

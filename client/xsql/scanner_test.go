@@ -407,22 +407,22 @@ type column struct {
 	dbType   string
 }
 
-func (self column) Name() string {
-	return self.name
+func (s column) Name() string {
+	return s.name
 }
 
-func (self column) ScanType() reflect.Type {
-	return self.scanType
+func (s column) ScanType() reflect.Type {
+	return s.scanType
 }
 
-func (self column) DatabaseTypeName() string {
-	return self.dbType
+func (s column) DatabaseTypeName() string {
+	return s.dbType
 }
 
 type scannable struct{}
 
-func (self scannable) Scan(rows xsql.Rows) error {
-	return rows.Scan(self)
+func (s scannable) Scan(rows xsql.Rows) error {
+	return rows.Scan(s)
 }
 
 type result struct {

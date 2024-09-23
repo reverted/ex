@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"path"
 	"strconv"
@@ -19,22 +18,22 @@ func NewParser() *parser {
 
 type parser struct{}
 
-func (self *parser) Parse(r *http.Request) (ex.Request, error) {
+func (p *parser) Parse(r *http.Request) (ex.Request, error) {
 
-	resource := self.ParseResource(r)
+	resource := p.ParseResource(r)
 
 	if resource == ":batch" {
-		return self.ParseBatch(r)
+		return p.ParseBatch(r)
 	} else {
-		return self.ParseCommand(r)
+		return p.ParseCommand(r)
 	}
 }
 
-func (self *parser) ParseBatch(r *http.Request) (ex.Batch, error) {
+func (p *parser) ParseBatch(r *http.Request) (ex.Batch, error) {
 
 	var batch ex.Batch
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return batch, err
 	}
@@ -51,36 +50,36 @@ func (self *parser) ParseBatch(r *http.Request) (ex.Batch, error) {
 	return batch, nil
 }
 
-func (self *parser) ParseCommand(r *http.Request) (ex.Command, error) {
+func (p *parser) ParseCommand(r *http.Request) (ex.Command, error) {
 
-	resource := self.ParseResource(r)
+	resource := p.ParseResource(r)
 
-	where, err := self.ParseWhere(r)
+	where, err := p.ParseWhere(r)
 	if err != nil {
 		return ex.Command{}, err
 	}
 
-	values, err := self.ParseValues(r)
+	values, err := p.ParseValues(r)
 	if err != nil {
 		return ex.Command{}, err
 	}
 
-	order, err := self.ParseOrder(r)
+	order, err := p.ParseOrder(r)
 	if err != nil {
 		return ex.Command{}, err
 	}
 
-	limit, err := self.ParseLimit(r)
+	limit, err := p.ParseLimit(r)
 	if err != nil {
 		return ex.Command{}, err
 	}
 
-	offset, err := self.ParseOffset(r)
+	offset, err := p.ParseOffset(r)
 	if err != nil {
 		return ex.Command{}, err
 	}
 
-	conflict, err := self.ParseConflict(r)
+	conflict, err := p.ParseConflict(r)
 	if err != nil {
 		return ex.Command{}, err
 	}
@@ -103,7 +102,7 @@ func (self *parser) ParseCommand(r *http.Request) (ex.Command, error) {
 	}
 }
 
-func (self *parser) ParseValues(r *http.Request) (ex.Values, error) {
+func (p *parser) ParseValues(r *http.Request) (ex.Values, error) {
 	defer r.Body.Close()
 
 	var values ex.Values
@@ -119,7 +118,7 @@ func (self *parser) ParseValues(r *http.Request) (ex.Values, error) {
 	return values, nil
 }
 
-func (self *parser) ParseOrder(r *http.Request) (ex.Order, error) {
+func (p *parser) ParseOrder(r *http.Request) (ex.Order, error) {
 	if param := r.Header.Get("X-Order-By"); len(param) > 0 {
 		return ex.Order(strings.Split(param, ",")), nil
 	} else {
@@ -127,25 +126,25 @@ func (self *parser) ParseOrder(r *http.Request) (ex.Order, error) {
 	}
 }
 
-func (self *parser) ParseLimit(r *http.Request) (ex.Limit, error) {
+func (p *parser) ParseLimit(r *http.Request) (ex.Limit, error) {
 	if param := r.Header.Get("X-Limit"); len(param) > 0 {
 		limit, err := strconv.Atoi(param)
-		return ex.Limit{limit}, err
+		return ex.Limit{Arg: limit}, err
 	} else {
 		return ex.Limit{}, nil
 	}
 }
 
-func (self *parser) ParseOffset(r *http.Request) (ex.Offset, error) {
+func (p *parser) ParseOffset(r *http.Request) (ex.Offset, error) {
 	if param := r.Header.Get("X-Offset"); len(param) > 0 {
 		offset, err := strconv.Atoi(param)
-		return ex.Offset{offset}, err
+		return ex.Offset{Arg: offset}, err
 	} else {
 		return ex.Offset{}, nil
 	}
 }
 
-func (self *parser) ParseConflict(r *http.Request) (ex.OnConflict, error) {
+func (p *parser) ParseConflict(r *http.Request) (ex.OnConflict, error) {
 	conflict := ex.OnConflict{}
 
 	if param := r.Header.Get("X-On-Conflict-Update"); len(param) > 0 {
@@ -163,7 +162,7 @@ func (self *parser) ParseConflict(r *http.Request) (ex.OnConflict, error) {
 	return conflict, nil
 }
 
-func (self *parser) ParseWhere(r *http.Request) (ex.Where, error) {
+func (p *parser) ParseWhere(r *http.Request) (ex.Where, error) {
 
 	where := ex.Where{}
 
@@ -179,6 +178,6 @@ func (self *parser) ParseWhere(r *http.Request) (ex.Where, error) {
 	return where, nil
 }
 
-func (self *parser) ParseResource(r *http.Request) string {
+func (p *parser) ParseResource(r *http.Request) string {
 	return path.Base(r.URL.Path)
 }

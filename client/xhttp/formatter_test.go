@@ -1,7 +1,7 @@
 package xhttp_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -88,7 +88,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req = ex.Query("resources", ex.Limit{1})
+				req = ex.Query("resources", ex.Limit{Arg: 1})
 			})
 
 			It("formats the request", func() {
@@ -100,7 +100,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has offset", func() {
 			BeforeEach(func() {
-				req = ex.Query("resources", ex.Offset{10})
+				req = ex.Query("resources", ex.Offset{Arg: 10})
 			})
 
 			It("formats the request", func() {
@@ -146,7 +146,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req = ex.Delete("resources", ex.Limit{1})
+				req = ex.Delete("resources", ex.Limit{Arg: 1})
 			})
 
 			It("formats the request", func() {
@@ -175,7 +175,7 @@ var _ = Describe("Formatter", func() {
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("POST"))
 				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
-				Expect(ioutil.ReadAll(res.Body)).To(MatchJSON(`{"key": "value"}`))
+				Expect(io.ReadAll(res.Body)).To(MatchJSON(`{"key": "value"}`))
 			})
 		})
 
@@ -234,7 +234,7 @@ var _ = Describe("Formatter", func() {
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("PUT"))
 				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
-				Expect(ioutil.ReadAll(res.Body)).To(MatchJSON(`{"key": "value"}`))
+				Expect(io.ReadAll(res.Body)).To(MatchJSON(`{"key": "value"}`))
 			})
 		})
 
@@ -263,7 +263,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req = ex.Update("resources", ex.Limit{1})
+				req = ex.Update("resources", ex.Limit{Arg: 1})
 			})
 
 			It("formats the request", func() {
@@ -277,20 +277,20 @@ var _ = Describe("Formatter", func() {
 	Describe("Modifiers", func() {
 		BeforeEach(func() {
 			req = ex.Query("resources", ex.Where{
-				"key-a": ex.Eq{"value"},
-				"key-b": ex.NotEq{"value"},
-				"key-c": ex.Gt{"value"},
-				"key-d": ex.GtEq{"value"},
-				"key-e": ex.Lt{"value"},
-				"key-f": ex.LtEq{"value"},
-				"key-g": ex.Is{"value"},
-				"key-i": ex.IsNot{"value"},
-				"key-j": ex.Like{"value"},
-				"key-k": ex.NotLike{"value"},
+				"key-a": ex.Eq{Arg: "value"},
+				"key-b": ex.NotEq{Arg: "value"},
+				"key-c": ex.Gt{Arg: "value"},
+				"key-d": ex.GtEq{Arg: "value"},
+				"key-e": ex.Lt{Arg: "value"},
+				"key-f": ex.LtEq{Arg: "value"},
+				"key-g": ex.Is{Arg: "value"},
+				"key-i": ex.IsNot{Arg: "value"},
+				"key-j": ex.Like{Arg: "value"},
+				"key-k": ex.NotLike{Arg: "value"},
 				"key-l": ex.In{"value1", "value2"},
 				"key-m": ex.NotIn{"value1", "value2"},
-				"key-n": ex.Btwn{"value1", "value2"},
-				"key-o": ex.NotBtwn{"value1", "value2"},
+				"key-n": ex.Btwn{Start: "value1", End: "value2"},
+				"key-o": ex.NotBtwn{Start: "value1", End: "value2"},
 			})
 		})
 

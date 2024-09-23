@@ -70,36 +70,36 @@ func cmd(action, resource string, opts ...opt) Command {
 
 type Where map[string]interface{}
 
-func (self Where) opt(cmd *Command) {
-	cmd.Where = self
+func (w Where) opt(cmd *Command) {
+	cmd.Where = w
 }
 
 type Values map[string]interface{}
 
-func (self Values) opt(cmd *Command) {
-	cmd.Values = self
+func (v Values) opt(cmd *Command) {
+	cmd.Values = v
 }
 
 type Order []string
 
-func (self Order) opt(cmd *Command) {
-	cmd.Order = self
+func (o Order) opt(cmd *Command) {
+	cmd.Order = o
 }
 
 type Limit struct {
 	Arg int `json:"arg"`
 }
 
-func (self Limit) opt(cmd *Command) {
-	cmd.Limit = self
+func (l Limit) opt(cmd *Command) {
+	cmd.Limit = l
 }
 
 type Offset struct {
 	Arg int `json:"arg"`
 }
 
-func (self Offset) opt(cmd *Command) {
-	cmd.Offset = self
+func (o Offset) opt(cmd *Command) {
+	cmd.Offset = o
 }
 
 type OnConflict struct {
@@ -108,26 +108,26 @@ type OnConflict struct {
 	Error  OnConflictError
 }
 
-func (self OnConflict) opt(cmd *Command) {
-	cmd.OnConflict = self
+func (o OnConflict) opt(cmd *Command) {
+	cmd.OnConflict = o
 }
 
 type OnConflictUpdate []string
 
-func (self OnConflictUpdate) opt(cmd *Command) {
-	cmd.OnConflict.Update = self
+func (o OnConflictUpdate) opt(cmd *Command) {
+	cmd.OnConflict.Update = o
 }
 
 type OnConflictIgnore string
 
-func (self OnConflictIgnore) opt(cmd *Command) {
-	cmd.OnConflict.Ignore = self
+func (o OnConflictIgnore) opt(cmd *Command) {
+	cmd.OnConflict.Ignore = o
 }
 
 type OnConflictError string
 
-func (self OnConflictError) opt(cmd *Command) {
-	cmd.OnConflict.Error = self
+func (o OnConflictError) opt(cmd *Command) {
+	cmd.OnConflict.Error = o
 }
 
 type Eq struct {

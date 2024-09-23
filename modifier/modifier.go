@@ -57,9 +57,9 @@ type interceptor struct {
 	Modifiers map[string]*modifier
 }
 
-func (self *interceptor) Intercept(ctx context.Context, cmd ex.Command) (ex.Command, error) {
+func (i *interceptor) Intercept(ctx context.Context, cmd ex.Command) (ex.Command, error) {
 
-	mod, ok := self.Modifiers[cmd.Resource]
+	mod, ok := i.Modifiers[cmd.Resource]
 	if !ok {
 		return cmd, nil
 	}

@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	. "github.com/onsi/ginkgo"
@@ -111,7 +111,7 @@ var _ = Describe("Executor", func() {
 				Context("when the server responds with a 5xx status", func() {
 					BeforeEach(func() {
 						httpResp.StatusCode = 500
-						httpResp.Body = ioutil.NopCloser(bytes.NewBufferString(``))
+						httpResp.Body = io.NopCloser(bytes.NewBufferString(``))
 					})
 
 					It("errors", func() {
@@ -126,7 +126,7 @@ var _ = Describe("Executor", func() {
 				Context("when the server responds with a 4xx status", func() {
 					BeforeEach(func() {
 						httpResp.StatusCode = 400
-						httpResp.Body = ioutil.NopCloser(bytes.NewBufferString(``))
+						httpResp.Body = io.NopCloser(bytes.NewBufferString(``))
 					})
 
 					It("errors", func() {
@@ -141,7 +141,7 @@ var _ = Describe("Executor", func() {
 				Context("when the server responds with a success status", func() {
 					BeforeEach(func() {
 						httpResp.StatusCode = 200
-						httpResp.Body = ioutil.NopCloser(bytes.NewBufferString(`[{"key": "value"}]`))
+						httpResp.Body = io.NopCloser(bytes.NewBufferString(`[{"key": "value"}]`))
 					})
 
 					It("succeeds", func() {
@@ -175,18 +175,18 @@ var _ = Describe("Executor", func() {
 
 type noopSpan struct{}
 
-func (self noopSpan) Finish() {}
+func (s noopSpan) Finish() {}
 
 type noopTracer struct{}
 
-func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+func (t noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
 	return noopSpan{}, ctx
 }
 
-func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+func (t noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 }
 
-func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+func (t noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
 }
 
@@ -196,6 +196,6 @@ func newLogger() *logger {
 
 type logger struct{}
 
-func (self *logger) Infof(format string, args ...interface{}) {
+func (l *logger) Infof(format string, args ...interface{}) {
 	fmt.Fprintf(GinkgoWriter, format, args...)
 }

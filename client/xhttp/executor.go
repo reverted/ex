@@ -30,26 +30,26 @@ type Client interface {
 type opt func(*executor)
 
 func WithTarget(target *url.URL) opt {
-	return func(self *executor) {
-		WithFormatter(NewFormatter(target))(self)
+	return func(e *executor) {
+		WithFormatter(NewFormatter(target))(e)
 	}
 }
 
 func WithFormatter(formatter Formatter) opt {
-	return func(self *executor) {
-		self.Formatter = formatter
+	return func(e *executor) {
+		e.Formatter = formatter
 	}
 }
 
 func WithTracer(tracer Tracer) opt {
-	return func(self *executor) {
-		self.Tracer = tracer
+	return func(e *executor) {
+		e.Tracer = tracer
 	}
 }
 
 func WithClient(client Client) opt {
-	return func(self *executor) {
-		self.Client = client
+	return func(e *executor) {
+		e.Client = client
 	}
 }
 
@@ -78,23 +78,23 @@ type executor struct {
 	Client
 }
 
-func (self *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
+func (e *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
 
-	r, err := self.Formatter.Format(req)
+	r, err := e.Formatter.Format(req)
 	if err != nil {
 		return false, err
 	}
 
-	return self.exec(ctx, r, data)
+	return e.exec(ctx, r, data)
 }
 
-func (self *executor) exec(ctx context.Context, r *http.Request, data interface{}) (bool, error) {
+func (e *executor) exec(ctx context.Context, r *http.Request, data interface{}) (bool, error) {
 
-	self.Logger.Infof(">>> %v", r.URL)
+	e.Logger.Infof(">>> %v", r.URL)
 
-	self.Tracer.InjectSpan(ctx, r)
+	e.Tracer.InjectSpan(ctx, r)
 
-	resp, err := self.Client.Do(r.WithContext(ctx))
+	resp, err := e.Client.Do(r.WithContext(ctx))
 	if err != nil {
 		return true, err
 	}
@@ -120,17 +120,17 @@ func (self *executor) exec(ctx context.Context, r *http.Request, data interface{
 
 type noopSpan struct{}
 
-func (self noopSpan) Finish() {}
+func (s noopSpan) Finish() {}
 
 type noopTracer struct{}
 
-func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+func (t noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
 	return noopSpan{}, ctx
 }
 
-func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+func (t noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 }
 
-func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+func (t noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
 }

@@ -2,7 +2,7 @@ package server_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	. "github.com/onsi/ginkgo"
@@ -44,7 +44,7 @@ var _ = Describe("Server", func() {
 
 			Context("when the table is empty", func() {
 				BeforeEach(func() {
-					request.Body = ioutil.NopCloser(bytes.NewBufferString(`{"name": "resource-1"}`))
+					request.Body = io.NopCloser(bytes.NewBufferString(`{"name": "resource-1"}`))
 				})
 
 				It("succeeds", func() {
@@ -71,7 +71,7 @@ var _ = Describe("Server", func() {
 
 				Context("inserting a new record", func() {
 					BeforeEach(func() {
-						request.Body = ioutil.NopCloser(bytes.NewBufferString(`{"name": "resource-4"}`))
+						request.Body = io.NopCloser(bytes.NewBufferString(`{"name": "resource-4"}`))
 					})
 
 					It("succeeds", func() {
@@ -96,7 +96,7 @@ var _ = Describe("Server", func() {
 
 				Context("inserting a conflicting record", func() {
 					BeforeEach(func() {
-						request.Body = ioutil.NopCloser(bytes.NewBufferString(`{"id": 1, "name": "resource-4"}`))
+						request.Body = io.NopCloser(bytes.NewBufferString(`{"id": 1, "name": "resource-4"}`))
 					})
 
 					Context("with no 'conflict' resolution", func() {
@@ -196,7 +196,7 @@ var _ = Describe("Server", func() {
 
 			Context("when the table is empty", func() {
 				BeforeEach(func() {
-					request.Body = ioutil.NopCloser(
+					request.Body = io.NopCloser(
 						bytes.NewBufferString(`[{"action": "INSERT", "resource": "resources", "values": {"name": "resource-1"}}]`),
 					)
 				})
@@ -225,7 +225,7 @@ var _ = Describe("Server", func() {
 
 				Context("executing multiple commands", func() {
 					BeforeEach(func() {
-						request.Body = ioutil.NopCloser(
+						request.Body = io.NopCloser(
 							bytes.NewBufferString(`[
 							  {"action": "DELETE", "resource": "resources"},
 							  {"action": "INSERT", "resource": "resources", "values": {"name": "resource-4"}},
@@ -849,7 +849,7 @@ var _ = Describe("Server", func() {
 	Describe("PUT /resources", func() {
 		BeforeEach(func() {
 			request.Method = "PUT"
-			request.Body = ioutil.NopCloser(bytes.NewBufferString(`{"name": "new-resource"}`))
+			request.Body = io.NopCloser(bytes.NewBufferString(`{"name": "new-resource"}`))
 		})
 
 		Context("when the table does not exist", func() {

@@ -42,8 +42,8 @@ var _ = Describe("Formatter", func() {
 			cmd = ex.Query("resources",
 				ex.Where{"key": "value"},
 				ex.Order{"key"},
-				ex.Limit{1},
-				ex.Offset{10},
+				ex.Limit{Arg: 1},
+				ex.Offset{Arg: 10},
 			)
 		})
 
@@ -75,7 +75,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has limit", func() {
 			BeforeEach(func() {
-				cmd = ex.Query("resources", ex.Limit{1})
+				cmd = ex.Query("resources", ex.Limit{Arg: 1})
 			})
 
 			It("formats the command", func() {
@@ -85,7 +85,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has offset", func() {
 			BeforeEach(func() {
-				cmd = ex.Query("resources", ex.Offset{10})
+				cmd = ex.Query("resources", ex.Offset{Arg: 10})
 			})
 
 			It("formats the command", func() {
@@ -99,7 +99,7 @@ var _ = Describe("Formatter", func() {
 			cmd = ex.Delete("resources",
 				ex.Where{"key": "value"},
 				ex.Order{"key"},
-				ex.Limit{1},
+				ex.Limit{Arg: 1},
 			)
 		})
 
@@ -131,7 +131,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has limit", func() {
 			BeforeEach(func() {
-				cmd = ex.Delete("resources", ex.Limit{1})
+				cmd = ex.Delete("resources", ex.Limit{Arg: 1})
 			})
 
 			It("formats the command", func() {
@@ -169,7 +169,7 @@ var _ = Describe("Formatter", func() {
 		Context("when the command is wrapped in ex.Json", func() {
 			BeforeEach(func() {
 				cmd = ex.Insert("resources",
-					ex.Values{"key": ex.Json{[]string{"value1", "value2"}}},
+					ex.Values{"key": ex.Json{Arg: []string{"value1", "value2"}}},
 				)
 			})
 
@@ -266,7 +266,7 @@ var _ = Describe("Formatter", func() {
 				ex.Values{"key1": "value1"},
 				ex.Where{"key2": "value2"},
 				ex.Order{"key"},
-				ex.Limit{1},
+				ex.Limit{Arg: 1},
 			)
 		})
 
@@ -309,7 +309,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has limit", func() {
 			BeforeEach(func() {
-				cmd = ex.Update("resources", ex.Limit{1})
+				cmd = ex.Update("resources", ex.Limit{Arg: 1})
 			})
 
 			It("formats the command", func() {

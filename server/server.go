@@ -45,33 +45,33 @@ type Processor interface {
 type opt func(*server)
 
 func WithParser(parser Parser) opt {
-	return func(self *server) {
-		self.Parser = parser
+	return func(s *server) {
+		s.Parser = parser
 	}
 }
 
 func WithTracer(tracer Tracer) opt {
-	return func(self *server) {
-		self.Tracer = tracer
+	return func(s *server) {
+		s.Tracer = tracer
 	}
 }
 
 func WithInterceptors(interceptors ...Interceptor) opt {
-	return func(self *server) {
-		self.Interceptors = interceptors
+	return func(s *server) {
+		s.Interceptors = interceptors
 	}
 }
 
 func WithProcessors(processors ...Processor) opt {
-	return func(self *server) {
-		self.Processors = processors
+	return func(s *server) {
+		s.Processors = processors
 	}
 }
 
 func WithContextKeys(keys ...string) opt {
-	return func(self *server) {
+	return func(s *server) {
 		for _, key := range keys {
-			self.IncludeKeys[key] = true
+			s.IncludeKeys[key] = true
 		}
 	}
 }
@@ -104,60 +104,60 @@ type server struct {
 	IncludeKeys  map[string]bool
 }
 
-func (self *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	self.Logger.Infof("<<< %v : %v", r.Method, r.URL)
+	s.Logger.Infof("<<< %v : %v", r.Method, r.URL)
 
-	span, ctx := self.Tracer.ExtractSpan(r, "serve")
+	span, ctx := s.Tracer.ExtractSpan(r, "serve")
 	defer span.Finish()
 
 	ctx = context.WithValue(ctx, ctxKeyMethod, r.Method)
 	ctx = context.WithValue(ctx, ctxKeyResource, path.Base(r.URL.Path))
 
-	if data, err := self.serve(r.WithContext(ctx)); err != nil {
-		self.Logger.Error(err)
+	if data, err := s.serve(r.WithContext(ctx)); err != nil {
+		s.Logger.Error(err)
 
-		statusCode := self.statusCode(err)
-		statusMessage := self.errorMessage(err)
+		statusCode := s.statusCode(err)
+		statusMessage := s.errorMessage(err)
 
-		self.Logger.Infof("<<< %v : %v [%v] %v", r.Method, r.URL, statusCode, statusMessage)
+		s.Logger.Infof("<<< %v : %v [%v] %v", r.Method, r.URL, statusCode, statusMessage)
 
 		w.WriteHeader(statusCode)
 		json.NewEncoder(w).Encode(statusMessage)
 
 	} else {
-		self.Logger.Infof("<<< %v : %v [200]", r.Method, r.URL)
+		s.Logger.Infof("<<< %v : %v [200]", r.Method, r.URL)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(data)
 	}
 }
 
-func (self *server) serve(r *http.Request) ([]map[string]interface{}, error) {
+func (s *server) serve(r *http.Request) ([]map[string]interface{}, error) {
 
-	req, err := self.Parser.Parse(r)
+	req, err := s.Parser.Parse(r)
 	if err != nil {
 		return nil, err
 	}
 
 	switch c := req.(type) {
 	case ex.Command:
-		return self.batch(r.Context(), ex.Bulk(c))
+		return s.batch(r.Context(), ex.Bulk(c))
 
 	case ex.Batch:
-		return self.batch(r.Context(), c)
+		return s.batch(r.Context(), c)
 
 	default:
-		return nil, errors.New("Not supported")
+		return nil, errors.New("not supported")
 	}
 }
 
-func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]interface{}, error) {
+func (s *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]interface{}, error) {
 
 	var err error
 	var reqs []ex.Request
 
-	for key, _ := range self.IncludeKeys {
+	for key, _ := range s.IncludeKeys {
 		if value := ctx.Value(key); value != "" {
 			reqs = append(reqs, ex.Exec(fmt.Sprintf("SET @%s = '%v'", key, value)))
 		}
@@ -165,7 +165,7 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 
 	for _, req := range batch.Requests {
 		if cmd, ok := req.(ex.Command); ok {
-			for _, i := range self.Interceptors {
+			for _, i := range s.Interceptors {
 				cmd, err = i.Intercept(ctx, cmd)
 				if err != nil {
 					return nil, err
@@ -176,11 +176,11 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 	}
 
 	var data []map[string]interface{}
-	if err = self.Client.ExecContext(ctx, ex.Bulk(reqs...), &data); err != nil {
+	if err = s.Client.ExecContext(ctx, ex.Bulk(reqs...), &data); err != nil {
 		return nil, err
 	}
 
-	for _, p := range self.Processors {
+	for _, p := range s.Processors {
 		data, err = p.Process(ctx, data)
 		if err != nil {
 			return nil, err
@@ -190,7 +190,7 @@ func (self *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]int
 	return data, nil
 }
 
-func (self *server) statusCode(err error) int {
+func (s *server) statusCode(err error) int {
 	switch t := err.(type) {
 	case *statusError:
 		return t.StatusCode
@@ -199,7 +199,7 @@ func (self *server) statusCode(err error) int {
 	}
 }
 
-func (self *server) errorMessage(err error) map[string]interface{} {
+func (s *server) errorMessage(err error) map[string]interface{} {
 	switch t := err.(type) {
 	case *statusError:
 		return map[string]interface{}{
@@ -224,8 +224,8 @@ func Intercept(interceptor func(ctx context.Context, cmd ex.Command) (ex.Command
 
 type InterceptorFunc func(context.Context, ex.Command) (ex.Command, error)
 
-func (self InterceptorFunc) Intercept(ctx context.Context, cmd ex.Command) (ex.Command, error) {
-	return self(ctx, cmd)
+func (i InterceptorFunc) Intercept(ctx context.Context, cmd ex.Command) (ex.Command, error) {
+	return i(ctx, cmd)
 }
 
 func Process(processor func(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error)) ProcessorFunc {
@@ -234,8 +234,8 @@ func Process(processor func(ctx context.Context, res []map[string]interface{}) (
 
 type ProcessorFunc func(context.Context, []map[string]interface{}) ([]map[string]interface{}, error)
 
-func (self ProcessorFunc) Process(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error) {
-	return self(ctx, res)
+func (p ProcessorFunc) Process(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error) {
+	return p(ctx, res)
 }
 
 func NewStatusError(statusCode int, err error) *statusError {
@@ -256,17 +256,17 @@ func (r *statusError) Error() string {
 
 type noopSpan struct{}
 
-func (self noopSpan) Finish() {}
+func (s noopSpan) Finish() {}
 
 type noopTracer struct{}
 
-func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+func (t noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
 	return noopSpan{}, ctx
 }
 
-func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+func (t noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 }
 
-func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+func (t noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
 }

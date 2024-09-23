@@ -27,14 +27,14 @@ type Client interface {
 }
 
 func WithExecutor(executor Executor) opt {
-	return func(self *client) {
-		self.Executor = executor
+	return func(c *client) {
+		c.Executor = executor
 	}
 }
 
 func WithTracer(tracer Tracer) opt {
-	return func(self *client) {
-		self.Tracer = tracer
+	return func(c *client) {
+		c.Tracer = tracer
 	}
 }
 
@@ -60,23 +60,23 @@ type client struct {
 	Tracer
 }
 
-func (self *client) Exec(req ex.Request, res ...interface{}) error {
-	return self.ExecContext(context.Background(), req, res...)
+func (c *client) Exec(req ex.Request, res ...interface{}) error {
+	return c.ExecContext(context.Background(), req, res...)
 }
 
-func (self *client) ExecContext(ctx context.Context, req ex.Request, res ...interface{}) error {
+func (c *client) ExecContext(ctx context.Context, req ex.Request, res ...interface{}) error {
 
-	span, spanCtx := self.Tracer.StartSpan(ctx, "exec")
+	span, spanCtx := c.Tracer.StartSpan(ctx, "exec")
 	defer span.Finish()
 
 	if len(res) > 0 {
-		return self.execute(spanCtx, req, res[0])
+		return c.execute(spanCtx, req, res[0])
 	} else {
-		return self.execute(spanCtx, req, nil)
+		return c.execute(spanCtx, req, nil)
 	}
 }
 
-func (self *client) execute(ctx context.Context, req ex.Request, data interface{}) error {
+func (c *client) execute(ctx context.Context, req ex.Request, data interface{}) error {
 
 	var err error
 	var retry bool
@@ -86,19 +86,19 @@ func (self *client) execute(ctx context.Context, req ex.Request, data interface{
 	for i, interval := range attempts {
 		time.Sleep(time.Duration(interval) * time.Second)
 
-		self.Logger.Infof(">>> %+v", req)
+		c.Logger.Infof(">>> %+v", req)
 
-		span, spanCtx := self.Tracer.StartSpan(ctx, "exec", ex.SpanTag{"attempt", i})
+		span, spanCtx := c.Tracer.StartSpan(ctx, "exec", ex.SpanTag{Key: "attempt", Value: i})
 		defer span.Finish()
 
-		if retry, err = self.Executor.Execute(spanCtx, req, data); !retry {
+		if retry, err = c.Executor.Execute(spanCtx, req, data); !retry {
 			break
 		}
 
 		if next := i + 1; next < len(attempts) {
-			self.Logger.Infof(">>> %+v [failed] retry in %ds", req, attempts[next])
+			c.Logger.Infof(">>> %+v [failed] retry in %ds", req, attempts[next])
 		} else {
-			self.Logger.Errorf(">>> %+v [failed] %v", req, err)
+			c.Logger.Errorf(">>> %+v [failed] %v", req, err)
 		}
 	}
 
@@ -107,17 +107,17 @@ func (self *client) execute(ctx context.Context, req ex.Request, data interface{
 
 type noopSpan struct{}
 
-func (self noopSpan) Finish() {}
+func (s noopSpan) Finish() {}
 
 type noopTracer struct{}
 
-func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+func (t noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
 	return noopSpan{}, ctx
 }
 
-func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+func (t noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 }
 
-func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+func (t noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
 }

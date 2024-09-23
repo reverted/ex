@@ -99,15 +99,15 @@ func NewDatabase() *database {
 	return &database{db, name, uri}
 }
 
-func (self *database) Close() {
-	_, err := self.DB.Exec("DROP DATABASE " + self.name)
+func (d *database) Close() {
+	_, err := d.DB.Exec("DROP DATABASE " + d.name)
 	Expect(err).NotTo(HaveOccurred())
 
-	self.DB.Close()
+	d.DB.Close()
 }
 
-func (self *database) Uri() string {
-	return self.uri + self.name
+func (d *database) Uri() string {
+	return d.uri + d.name
 }
 
 func connection() string {
@@ -115,7 +115,7 @@ func connection() string {
 	if conn := os.Getenv("MYSQL_CONNECTION"); conn != "" {
 		return conn
 	} else {
-		return fmt.Sprintf("tcp(localhost:3306)/")
+		return "tcp(localhost:3306)/"
 	}
 }
 
@@ -170,18 +170,18 @@ func randomString() string {
 
 type noopSpan struct{}
 
-func (self noopSpan) Finish() {}
+func (s noopSpan) Finish() {}
 
 type noopTracer struct{}
 
-func (self noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
+func (t noopTracer) StartSpan(ctx context.Context, name string, tags ...ex.SpanTag) (ex.Span, context.Context) {
 	return noopSpan{}, ctx
 }
 
-func (self noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
+func (t noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 }
 
-func (self noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
+func (t noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
 }
 
@@ -191,14 +191,14 @@ func newLogger() *logger {
 
 type logger struct{}
 
-func (self *logger) Error(args ...interface{}) {
+func (l *logger) Error(args ...interface{}) {
 	fmt.Fprintln(GinkgoWriter, args...)
 }
 
-func (self *logger) Errorf(format string, args ...interface{}) {
+func (l *logger) Errorf(format string, args ...interface{}) {
 	fmt.Fprintf(GinkgoWriter, format, args...)
 }
 
-func (self *logger) Infof(format string, args ...interface{}) {
+func (l *logger) Infof(format string, args ...interface{}) {
 	fmt.Fprintf(GinkgoWriter, format, args...)
 }

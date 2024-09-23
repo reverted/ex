@@ -22,45 +22,45 @@ type formatter struct {
 	*url.URL
 }
 
-func (self *formatter) Format(req ex.Request) (*http.Request, error) {
+func (f *formatter) Format(req ex.Request) (*http.Request, error) {
 	switch c := req.(type) {
 	case ex.Command:
-		return self.FormatCommand(c)
+		return f.FormatCommand(c)
 
 	case ex.Batch:
-		return self.FormatBatch(c)
+		return f.FormatBatch(c)
 
 	default:
-		return nil, errors.New("Unsupported req")
+		return nil, errors.New("unsupported req")
 	}
 }
 
-func (self *formatter) FormatCommand(cmd ex.Command) (*http.Request, error) {
+func (f *formatter) FormatCommand(cmd ex.Command) (*http.Request, error) {
 
 	switch strings.ToUpper(cmd.Action) {
 	case "QUERY", "DELETE", "INSERT", "UPDATE":
-		return self.FormatRequest(cmd)
+		return f.FormatRequest(cmd)
 
 	default:
-		return nil, errors.New("Unsupported cmd")
+		return nil, errors.New("unsupported cmd")
 	}
 }
 
-func (self *formatter) FormatRequest(cmd ex.Command) (*http.Request, error) {
+func (f *formatter) FormatRequest(cmd ex.Command) (*http.Request, error) {
 
 	method := methods[cmd.Action]
 
-	params, err := self.FormatParams(cmd)
+	params, err := f.FormatParams(cmd)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := self.FormatBodyForMethod(method, cmd.Values)
+	body, err := f.FormatBodyForMethod(method, cmd.Values)
 	if err != nil {
 		return nil, err
 	}
 
-	url := *self.URL
+	url := *f.URL
 	url.Path = path.Join(url.Path, cmd.Resource)
 	url.RawQuery = params.Encode()
 
@@ -69,7 +69,7 @@ func (self *formatter) FormatRequest(cmd ex.Command) (*http.Request, error) {
 		return nil, err
 	}
 
-	headers, err := self.FormatHeaders(cmd)
+	headers, err := f.FormatHeaders(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -81,20 +81,20 @@ func (self *formatter) FormatRequest(cmd ex.Command) (*http.Request, error) {
 	return r, nil
 }
 
-func (self *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
+func (f *formatter) FormatBatch(batch ex.Batch) (*http.Request, error) {
 
-	body, err := self.FormatBody(batch)
+	body, err := f.FormatBody(batch)
 	if err != nil {
 		return nil, err
 	}
 
-	url := *self.URL
+	url := *f.URL
 	url.Path = path.Join(url.Path, ":batch")
 
 	return http.NewRequest("POST", url.String(), body)
 }
 
-func (self *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
+func (f *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 
 	params := url.Values{}
 
@@ -109,7 +109,7 @@ func (self *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 	return params, nil
 }
 
-func (self *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
+func (f *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
 	res := map[string]string{}
 
 	if len(cmd.Order) > 0 {
@@ -139,17 +139,17 @@ func (self *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) 
 	return res, nil
 }
 
-func (self *formatter) FormatBodyForMethod(method string, values interface{}) (io.Reader, error) {
+func (f *formatter) FormatBodyForMethod(method string, values interface{}) (io.Reader, error) {
 
 	switch method {
 	case "PUT", "POST":
-		return self.FormatBody(values)
+		return f.FormatBody(values)
 	default:
 		return http.NoBody, nil
 	}
 }
 
-func (self *formatter) FormatBody(values interface{}) (io.Reader, error) {
+func (f *formatter) FormatBody(values interface{}) (io.Reader, error) {
 
 	content, err := json.Marshal(values)
 	if err != nil {
