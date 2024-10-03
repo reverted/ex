@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/reverted/ex"
+	"github.com/reverted/ex/client/xsql/xmysql"
+	"github.com/reverted/ex/client/xsql/xpg"
 )
 
 type Logger interface {
@@ -60,9 +62,15 @@ type Result interface {
 
 type opt func(*executor)
 
+func WithPostgresFormatter() opt {
+	return func(e *executor) {
+		e.Formatter = xpg.NewFormatter()
+	}
+}
+
 func WithMysqlFormatter() opt {
 	return func(e *executor) {
-		e.Formatter = NewMysqlFormatter()
+		e.Formatter = xmysql.NewFormatter()
 	}
 }
 
@@ -96,7 +104,7 @@ func NewExecutor(logger Logger, opts ...opt) *executor {
 		Logger:    logger,
 		Tracer:    noopTracer{},
 		Scanner:   NewScanner(),
-		Formatter: NewMysqlFormatter(),
+		Formatter: xmysql.NewFormatter(),
 	}
 
 	for _, opt := range opts {

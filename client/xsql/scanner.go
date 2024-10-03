@@ -183,7 +183,7 @@ func (s *scanner) scanValue(value interface{}, dbTypeName string) (interface{}, 
 
 	switch v := value.(type) {
 	case sql.NullString:
-		return s.scanNullString(v.String, dbTypeName)
+		return s.scanString(v.String, dbTypeName)
 
 	case sql.NullInt32:
 		return int(v.Int32), nil
@@ -210,7 +210,10 @@ func (s *scanner) scanValue(value interface{}, dbTypeName string) (interface{}, 
 		return int(v), nil
 
 	case string:
-		return s.scanString(string(v)), nil
+		return s.scanString(v, dbTypeName)
+
+	case []byte:
+		return s.scanString(string(v), dbTypeName)
 
 	default:
 		return value, nil
@@ -229,7 +232,7 @@ func (s *scanner) scanNullTime(t time.Time, dbTypeName string) interface{} {
 func (s *scanner) scanRawBytes(value string, dbTypeName string) (interface{}, error) {
 	switch dbTypeName {
 	case "VARCHAR", "TEXT":
-		return s.scanString(value), nil
+		return s.scanRawString(value), nil
 	case "DECIMAL":
 		return strconv.ParseFloat(value, 64)
 	default:
@@ -237,7 +240,7 @@ func (s *scanner) scanRawBytes(value string, dbTypeName string) (interface{}, er
 	}
 }
 
-func (s *scanner) scanString(value string) interface{} {
+func (s *scanner) scanRawString(value string) interface{} {
 	switch value {
 	case "true":
 		return true
@@ -248,7 +251,7 @@ func (s *scanner) scanString(value string) interface{} {
 	}
 }
 
-func (s *scanner) scanNullString(value string, dbTypeName string) (interface{}, error) {
+func (s *scanner) scanString(value string, dbTypeName string) (interface{}, error) {
 	switch dbTypeName {
 	case "JSON":
 		if value == "" {
@@ -258,7 +261,7 @@ func (s *scanner) scanNullString(value string, dbTypeName string) (interface{}, 
 			return data, json.Unmarshal([]byte(value), &data)
 		}
 	default:
-		return s.scanString(value), nil
+		return s.scanRawString(value), nil
 	}
 }
 

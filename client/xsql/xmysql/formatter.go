@@ -1,4 +1,4 @@
-package xsql
+package xmysql
 
 import (
 	"encoding/json"
@@ -11,13 +11,13 @@ import (
 	"github.com/reverted/ex"
 )
 
-func NewMysqlFormatter() *mysqlFormatter {
-	return &mysqlFormatter{}
+func NewFormatter() *formatter {
+	return &formatter{}
 }
 
-type mysqlFormatter struct{}
+type formatter struct{}
 
-func (f *mysqlFormatter) Format(cmd ex.Command) (ex.Statement, error) {
+func (f *formatter) Format(cmd ex.Command) (ex.Statement, error) {
 	switch strings.ToUpper(cmd.Action) {
 	case "QUERY":
 		return f.FormatQuery(cmd), nil
@@ -36,7 +36,7 @@ func (f *mysqlFormatter) Format(cmd ex.Command) (ex.Statement, error) {
 	}
 }
 
-func (f *mysqlFormatter) FormatQuery(cmd ex.Command) ex.Statement {
+func (f *formatter) FormatQuery(cmd ex.Command) ex.Statement {
 
 	var stmt string
 	var args []interface{}
@@ -63,7 +63,7 @@ func (f *mysqlFormatter) FormatQuery(cmd ex.Command) ex.Statement {
 	return ex.Exec(stmt, args...)
 }
 
-func (f *mysqlFormatter) FormatDelete(cmd ex.Command) ex.Statement {
+func (f *formatter) FormatDelete(cmd ex.Command) ex.Statement {
 
 	var stmt string
 	var args []interface{}
@@ -86,7 +86,7 @@ func (f *mysqlFormatter) FormatDelete(cmd ex.Command) ex.Statement {
 	return ex.Exec(stmt, args...)
 }
 
-func (f *mysqlFormatter) FormatInsert(cmd ex.Command) ex.Statement {
+func (f *formatter) FormatInsert(cmd ex.Command) ex.Statement {
 
 	var stmt string
 	var args []interface{}
@@ -105,7 +105,7 @@ func (f *mysqlFormatter) FormatInsert(cmd ex.Command) ex.Statement {
 	return ex.Exec(stmt, args...)
 }
 
-func (f *mysqlFormatter) FormatUpdate(cmd ex.Command) ex.Statement {
+func (f *formatter) FormatUpdate(cmd ex.Command) ex.Statement {
 
 	var stmt string
 	var args []interface{}
@@ -133,39 +133,35 @@ func (f *mysqlFormatter) FormatUpdate(cmd ex.Command) ex.Statement {
 	return ex.Exec(stmt, args...)
 }
 
-func (f *mysqlFormatter) FormatValues(values ex.Values) (string, []interface{}) {
+func (f *formatter) FormatValueArg(k string, v interface{}) (string, []interface{}) {
+	switch value := v.(type) {
+	case ex.Literal:
+		return fmt.Sprintf("%s=%s", k, value.Arg), nil
+
+	case ex.Json:
+		data, _ := json.Marshal(value.Arg)
+		return fmt.Sprintf("%s = ?", k), []interface{}{string(data)}
+
+	default:
+		switch reflect.ValueOf(value).Kind() {
+		case reflect.Slice, reflect.Map:
+			data, _ := json.Marshal(value)
+			return fmt.Sprintf("%s = ?", k), []interface{}{string(data)}
+
+		default:
+			return fmt.Sprintf("%s = ?", k), []interface{}{v}
+		}
+	}
+}
+
+func (f *formatter) FormatValues(values ex.Values) (string, []interface{}) {
 
 	var columnArgs []columnArg
 
 	for k, v := range values {
-		switch value := v.(type) {
-		case ex.Literal:
-			columnArgs = append(columnArgs, columnArg{
-				column: fmt.Sprintf("%s=%s", k, value.Arg),
-				args:   nil,
-			})
-
-		case ex.Json:
-			data, _ := json.Marshal(value.Arg)
-			columnArgs = append(columnArgs, columnArg{
-				column: fmt.Sprintf("%s = ?", k),
-				args:   []interface{}{string(data)},
-			})
-
-		default:
-			switch reflect.ValueOf(value).Kind() {
-			case reflect.Slice, reflect.Map:
-				data, _ := json.Marshal(value)
-				columnArgs = append(columnArgs, columnArg{
-					column: fmt.Sprintf("%s = ?", k),
-					args:   []interface{}{string(data)},
-				})
-			default:
-				columnArgs = append(columnArgs, columnArg{
-					column: fmt.Sprintf("%s = ?", k),
-					args:   []interface{}{v},
-				})
-			}
+		column, arg := f.FormatValueArg(k, v)
+		if column != "" {
+			columnArgs = append(columnArgs, columnArg{column, arg})
 		}
 	}
 
@@ -185,12 +181,12 @@ func (f *mysqlFormatter) FormatValues(values ex.Values) (string, []interface{}) 
 	return strings.Join(columns, ","), args
 }
 
-func (f *mysqlFormatter) FormatOrder(order ex.Order) string {
+func (f *formatter) FormatOrder(order ex.Order) string {
 
 	return strings.Join(order, ",")
 }
 
-func (f *mysqlFormatter) FormatLimit(limit ex.Limit) string {
+func (f *formatter) FormatLimit(limit ex.Limit) string {
 	if limit.Arg > 0 {
 		return fmt.Sprintf("%v", limit.Arg)
 	} else {
@@ -198,7 +194,7 @@ func (f *mysqlFormatter) FormatLimit(limit ex.Limit) string {
 	}
 }
 
-func (f *mysqlFormatter) FormatOffset(offset ex.Offset) string {
+func (f *formatter) FormatOffset(offset ex.Offset) string {
 	if offset.Arg > 0 {
 		return fmt.Sprintf("%v", offset.Arg)
 	} else {
@@ -206,7 +202,7 @@ func (f *mysqlFormatter) FormatOffset(offset ex.Offset) string {
 	}
 }
 
-func (f *mysqlFormatter) FormatConflict(conflict ex.OnConflict) string {
+func (f *formatter) FormatConflict(conflict ex.OnConflict) string {
 
 	if c := conflict.Update; len(c) > 0 {
 		return f.FormatConflictUpdate(c)
@@ -223,7 +219,7 @@ func (f *mysqlFormatter) FormatConflict(conflict ex.OnConflict) string {
 	return ""
 }
 
-func (f *mysqlFormatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) string {
+func (f *formatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) string {
 	var columns []string
 
 	for _, c := range conflict {
@@ -237,7 +233,7 @@ func (f *mysqlFormatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) stri
 	}
 }
 
-func (f *mysqlFormatter) FormatConflictIgnore(conflict ex.OnConflictIgnore) string {
+func (f *formatter) FormatConflictIgnore(conflict ex.OnConflictIgnore) string {
 
 	if conflict == "true" {
 		return "DUPLICATE KEY UPDATE id = id"
@@ -246,12 +242,12 @@ func (f *mysqlFormatter) FormatConflictIgnore(conflict ex.OnConflictIgnore) stri
 	}
 }
 
-func (f *mysqlFormatter) FormatConflictError(conflict ex.OnConflictError) string {
+func (f *formatter) FormatConflictError(conflict ex.OnConflictError) string {
 
 	return ""
 }
 
-func (f *mysqlFormatter) FormatWhereArg(k string, v interface{}) (string, []interface{}) {
+func (f *formatter) FormatWhereArg(k string, v interface{}) (string, []interface{}) {
 	switch value := v.(type) {
 
 	case ex.Literal:
@@ -289,7 +285,7 @@ func (f *mysqlFormatter) FormatWhereArg(k string, v interface{}) (string, []inte
 	}
 }
 
-func (f *mysqlFormatter) FormatWhere(where ex.Where) (string, []interface{}) {
+func (f *formatter) FormatWhere(where ex.Where) (string, []interface{}) {
 
 	var columnArgs []columnArg
 
@@ -316,12 +312,12 @@ func (f *mysqlFormatter) FormatWhere(where ex.Where) (string, []interface{}) {
 	return strings.Join(columns, " AND "), args
 }
 
-func (f *mysqlFormatter) formatIn(args []interface{}) string {
+func (f *formatter) formatIn(args []interface{}) string {
 	qs := strings.Repeat("?", len(args))
 	return strings.Join(strings.Split(qs, ""), ",")
 }
 
-func (f *mysqlFormatter) formatIs(_ interface{}) string {
+func (f *formatter) formatIs(_ interface{}) string {
 	return "NULL"
 }
 

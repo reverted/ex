@@ -1,4 +1,4 @@
-package xsql_test
+package xpg_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/reverted/ex"
 	"github.com/reverted/ex/client/xsql"
+	"github.com/reverted/ex/client/xsql/xpg"
 )
 
 var _ = Describe("Formatter", func() {
@@ -20,7 +21,7 @@ var _ = Describe("Formatter", func() {
 	)
 
 	BeforeEach(func() {
-		formatter = xsql.NewMysqlFormatter()
+		formatter = xpg.NewFormatter()
 	})
 
 	JustBeforeEach(func() {
@@ -48,7 +49,7 @@ var _ = Describe("Formatter", func() {
 		})
 
 		It("formats the command", func() {
-			Expect(stmt.Stmt).To(Equal("SELECT * FROM resources WHERE key = ? ORDER BY key LIMIT 1 OFFSET 10"))
+			Expect(stmt.Stmt).To(Equal("SELECT * FROM resources WHERE key = $1 ORDER BY key LIMIT 1 OFFSET 10"))
 			Expect(stmt.Args).To(ConsistOf("value"))
 		})
 
@@ -58,7 +59,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT * FROM resources WHERE key = ?"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM resources WHERE key = $1"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
@@ -104,7 +105,7 @@ var _ = Describe("Formatter", func() {
 		})
 
 		It("formats the command", func() {
-			Expect(stmt.Stmt).To(Equal("DELETE FROM resources WHERE key = ? ORDER BY key LIMIT 1"))
+			Expect(stmt.Stmt).To(Equal("DELETE FROM resources WHERE key = $1 ORDER BY key LIMIT 1"))
 			Expect(stmt.Args).To(ConsistOf("value"))
 		})
 
@@ -114,7 +115,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("DELETE FROM resources WHERE key = ?"))
+				Expect(stmt.Stmt).To(Equal("DELETE FROM resources WHERE key = $1"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
@@ -148,7 +149,7 @@ var _ = Describe("Formatter", func() {
 		})
 
 		It("formats the command", func() {
-			Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+			Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
 			Expect(stmt.Args).To(ConsistOf("value"))
 		})
 
@@ -161,7 +162,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ? ON DUPLICATE KEY UPDATE key = VALUES(key)"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1 ON CONFLICT DO UPDATE SET key = excluded.key"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
@@ -174,7 +175,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
 				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
 			})
 		})
@@ -187,7 +188,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
 				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
 			})
 		})
@@ -200,7 +201,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
 				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
 			})
 		})
@@ -213,7 +214,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
 				Expect(stmt.Args).To(ConsistOf("{\"key\":0}"))
 			})
 		})
@@ -226,7 +227,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
 				Expect(stmt.Args).To(ConsistOf("{\"key\":\"value\"}"))
 			})
 		})
@@ -240,7 +241,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ? ON DUPLICATE KEY UPDATE id = id"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1 ON CONFLICT DO NOTHING"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
@@ -254,7 +255,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = ?"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
@@ -271,7 +272,7 @@ var _ = Describe("Formatter", func() {
 		})
 
 		It("formats the command", func() {
-			Expect(stmt.Stmt).To(Equal("UPDATE resources SET key1 = ? WHERE key2 = ? ORDER BY key LIMIT 1"))
+			Expect(stmt.Stmt).To(Equal("UPDATE resources SET key1 = $1 WHERE key2 = $2 ORDER BY key LIMIT 1"))
 			Expect(stmt.Args).To(ConsistOf("value1", "value2"))
 		})
 
@@ -281,7 +282,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("UPDATE resources SET key = ?"))
+				Expect(stmt.Stmt).To(Equal("UPDATE resources SET key = $1"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
@@ -292,7 +293,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("UPDATE resources WHERE key = ?"))
+				Expect(stmt.Stmt).To(Equal("UPDATE resources WHERE key = $1"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
