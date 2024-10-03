@@ -47,9 +47,7 @@ var _ = Describe("Executor", func() {
 		mockFormatter = mocks.NewMockFormatter(mockCtrl)
 		mockScanner = mocks.NewMockScanner(mockCtrl)
 		mockTx = mocks.NewMockTx(mockCtrl)
-		mockTx.EXPECT().Rollback().Return(nil)
 		mockRows = mocks.NewMockRows(mockCtrl)
-		mockRows.EXPECT().Close().Return(nil)
 		mockResult = mocks.NewMockResult(mockCtrl)
 
 		ctx = context.Background()
@@ -85,6 +83,7 @@ var _ = Describe("Executor", func() {
 
 		Context("when beginning a tx succeeds", func() {
 			BeforeEach(func() {
+				mockTx.EXPECT().Rollback().Return(nil)
 				mockConnection.EXPECT().Begin().Return(mockTx, nil)
 			})
 
@@ -118,6 +117,7 @@ var _ = Describe("Executor", func() {
 
 				Context("when executing the request succeeds", func() {
 					BeforeEach(func() {
+						mockRows.EXPECT().Close().Return(nil)
 						mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 					})
 
@@ -178,6 +178,7 @@ var _ = Describe("Executor", func() {
 
 		Context("when beginning a tx succeeds", func() {
 			BeforeEach(func() {
+				mockTx.EXPECT().Rollback().Return(nil)
 				mockConnection.EXPECT().Begin().Return(mockTx, nil)
 			})
 
@@ -276,6 +277,7 @@ var _ = Describe("Executor", func() {
 
 						Context("when executing the query succeeds", func() {
 							BeforeEach(func() {
+								mockRows.EXPECT().Close().Return(nil)
 								mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 							})
 
@@ -354,6 +356,7 @@ var _ = Describe("Executor", func() {
 
 		Context("when beginning a tx succeeds", func() {
 			BeforeEach(func() {
+				mockTx.EXPECT().Rollback().Return(nil)
 				mockConnection.EXPECT().Begin().Return(mockTx, nil)
 			})
 
@@ -400,40 +403,40 @@ var _ = Describe("Executor", func() {
 						})
 					})
 
-					Context("when retrieving the id succeeds", func() {
+					Context("when the data result is nil", func() {
 						BeforeEach(func() {
-							mockResult.EXPECT().LastInsertId().Return(int64(10), nil)
+							data = nil
 						})
 
-						Context("when the data result is nil", func() {
+						Context("when commiting the tx fails", func() {
 							BeforeEach(func() {
-								data = nil
+								mockTx.EXPECT().Commit().Return(errors.New("nope"))
 							})
 
-							Context("when commiting the tx fails", func() {
-								BeforeEach(func() {
-									mockTx.EXPECT().Commit().Return(errors.New("nope"))
-								})
-
-								It("errors", func() {
-									Expect(err).To(HaveOccurred())
-								})
-							})
-
-							Context("when commiting the tx succeeds", func() {
-								BeforeEach(func() {
-									mockTx.EXPECT().Commit().Return(nil)
-								})
-
-								It("succeeds", func() {
-									Expect(err).NotTo(HaveOccurred())
-								})
+							It("errors", func() {
+								Expect(err).To(HaveOccurred())
 							})
 						})
 
-						Context("when the data result is NOT nil", func() {
+						Context("when commiting the tx succeeds", func() {
 							BeforeEach(func() {
-								data = map[string]interface{}{}
+								mockTx.EXPECT().Commit().Return(nil)
+							})
+
+							It("succeeds", func() {
+								Expect(err).NotTo(HaveOccurred())
+							})
+						})
+					})
+
+					Context("when the data result is NOT nil", func() {
+						BeforeEach(func() {
+							data = map[string]interface{}{}
+						})
+
+						Context("when retrieving the id succeeds", func() {
+							BeforeEach(func() {
+								mockResult.EXPECT().LastInsertId().Return(int64(10), nil)
 							})
 
 							Context("when formatting the query fails", func() {
@@ -466,6 +469,7 @@ var _ = Describe("Executor", func() {
 
 								Context("when executing the query succeeds", func() {
 									BeforeEach(func() {
+										mockRows.EXPECT().Close().Return(nil)
 										mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 									})
 
@@ -530,6 +534,7 @@ var _ = Describe("Executor", func() {
 
 		Context("when beginning a tx succeeds", func() {
 			BeforeEach(func() {
+				mockTx.EXPECT().Rollback().Return(nil)
 				mockConnection.EXPECT().Begin().Return(mockTx, nil)
 			})
 
@@ -627,6 +632,7 @@ var _ = Describe("Executor", func() {
 
 							Context("when executing the query succeeds", func() {
 								BeforeEach(func() {
+									mockRows.EXPECT().Close().Return(nil)
 									mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 								})
 

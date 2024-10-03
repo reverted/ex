@@ -28,7 +28,6 @@ var _ = Describe("Scanner", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockRows = mocks.NewMockRows(mockCtrl)
 		mockRows.EXPECT().Next().Return(true).Times(1)
-		mockRows.EXPECT().Next().Return(false).Times(1)
 
 		scanner = xsql.NewScanner()
 	})
@@ -56,6 +55,7 @@ var _ = Describe("Scanner", func() {
 
 		Context("when scanning succeeds", func() {
 			BeforeEach(func() {
+				mockRows.EXPECT().Next().Return(false).Times(1)
 				mockRows.EXPECT().Scan(gomock.Any()).Return(nil)
 			})
 
@@ -122,6 +122,7 @@ var _ = Describe("Scanner", func() {
 
 			Context("when scanning succeeds", func() {
 				BeforeEach(func() {
+					mockRows.EXPECT().Next().Return(false).Times(1)
 					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(nil)
 				})
 
@@ -195,6 +196,7 @@ var _ = Describe("Scanner", func() {
 
 			Context("when scanning succeeds", func() {
 				BeforeEach(func() {
+					mockRows.EXPECT().Next().Return(false).Times(1)
 					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 				})
 
@@ -243,24 +245,8 @@ var _ = Describe("Scanner", func() {
 					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(nil)
 				})
 
-				Context("when rows fails", func() {
-					BeforeEach(func() {
-						mockRows.EXPECT().Err().Return(errors.New("nope"))
-					})
-
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
-					})
-				})
-
-				Context("when rows succeeds", func() {
-					BeforeEach(func() {
-						mockRows.EXPECT().Err().Return(nil)
-					})
-
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
-					})
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
@@ -287,24 +273,8 @@ var _ = Describe("Scanner", func() {
 					mockRows.EXPECT().Scan(gomock.Any()).Return(nil)
 				})
 
-				Context("when rows fails", func() {
-					BeforeEach(func() {
-						mockRows.EXPECT().Err().Return(errors.New("nope"))
-					})
-
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
-					})
-				})
-
-				Context("when rows succeeds", func() {
-					BeforeEach(func() {
-						mockRows.EXPECT().Err().Return(nil)
-					})
-
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
-					})
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
@@ -332,24 +302,8 @@ var _ = Describe("Scanner", func() {
 					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(nil)
 				})
 
-				Context("when rows fails", func() {
-					BeforeEach(func() {
-						mockRows.EXPECT().Err().Return(errors.New("nope"))
-					})
-
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
-					})
-				})
-
-				Context("when rows succeeds", func() {
-					BeforeEach(func() {
-						mockRows.EXPECT().Err().Return(nil)
-					})
-
-					It("errors", func() {
-						Expect(err).To(HaveOccurred())
-					})
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
 				})
 			})
 		})
@@ -374,6 +328,7 @@ var _ = Describe("Scanner", func() {
 
 			Context("when scanning succeeds", func() {
 				BeforeEach(func() {
+					mockRows.EXPECT().Next().Return(false).Times(1)
 					mockRows.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(nil)
 				})
 

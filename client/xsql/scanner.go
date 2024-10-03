@@ -290,6 +290,9 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 		if err != nil {
 			return fmt.Errorf("failed to marshal map to json: %w", err)
 		}
+		if !v.CanSet() {
+			return fmt.Errorf("cannot set value: %v", v)
+		}
 		v.SetBytes(data)
 		return nil
 	}
