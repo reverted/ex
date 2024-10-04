@@ -169,7 +169,20 @@ func (s *scanner) scanValues(rows Rows) ([]ColumnType, []interface{}, error) {
 	values := make([]interface{}, len(types))
 
 	for i, t := range types {
-		values[i] = reflect.New(t.ScanType()).Interface()
+		switch t.DatabaseTypeName() {
+		case "VARCHAR", "TEXT", "CHAR", "STRING", "BPCHAR":
+			values[i] = &sql.NullString{}
+		case "INT", "INT2", "INT4", "INT8", "INTEGER", "BIGINT", "SMALLINT", "SERIAL", "BIGSERIAL":
+			values[i] = &sql.NullInt64{}
+		case "FLOAT", "FLOAT4", "FLOAT8", "DOUBLE", "DECIMAL", "NUMERIC", "REAL":
+			values[i] = &sql.NullFloat64{}
+		case "BOOL", "BOOLEAN":
+			values[i] = &sql.NullBool{}
+		case "DATE", "DATETIME", "TIMESTAMP", "TIMESTAMPTZ":
+			values[i] = &sql.NullTime{}
+		default:
+			values[i] = reflect.New(t.ScanType()).Interface()
+		}
 	}
 
 	if err := rows.Scan(values...); err != nil {
