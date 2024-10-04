@@ -157,27 +157,23 @@ func (f *formatter) FormatValueArg(index int, k string, v interface{}) (string, 
 
 func (f *formatter) FormatValues(values ex.Values, index int) (string, []interface{}) {
 
-	var columnArgs []columnArg
-
-	for k, v := range values {
-		column, arg := f.FormatValueArg(index, k, v)
-		if column != "" {
-			columnArgs = append(columnArgs, columnArg{column, arg})
-			index += len(arg) // Increment index by the number of arguments used
-		}
+	var keys []string
+	for k := range values {
+		keys = append(keys, k)
 	}
-
-	// Sort the columnArgs slice by the column names
-	sort.Slice(columnArgs, func(i, j int) bool {
-		return columnArgs[i].column < columnArgs[j].column
-	})
+	sort.Strings(keys)
 
 	var columns []string
 	var args []interface{}
 
-	for _, ca := range columnArgs {
-		columns = append(columns, ca.column)
-		args = append(args, ca.args...)
+	for _, k := range keys {
+		v := values[k]
+		column, arg := f.FormatValueArg(index, k, v)
+		if column != "" {
+			columns = append(columns, column)
+			args = append(args, arg...)
+			index += len(arg) // Increment index by the number of arguments used
+		}
 	}
 
 	return strings.Join(columns, ","), args
@@ -285,27 +281,23 @@ func (f *formatter) FormatWhereArg(index int, k string, v interface{}) (string, 
 
 func (f *formatter) FormatWhere(where ex.Where, index int) (string, []interface{}) {
 
-	var columnArgs []columnArg
-
-	for k, v := range where {
-		column, arg := f.FormatWhereArg(index, k, v)
-		if column != "" {
-			columnArgs = append(columnArgs, columnArg{column, arg})
-			index += len(arg) // Increment index by the number of arguments used
-		}
+	var keys []string
+	for k := range where {
+		keys = append(keys, k)
 	}
-
-	// Sort the columnArgs slice by the column names
-	sort.Slice(columnArgs, func(i, j int) bool {
-		return columnArgs[i].column < columnArgs[j].column
-	})
+	sort.Strings(keys)
 
 	var columns []string
 	var args []interface{}
 
-	for _, ca := range columnArgs {
-		columns = append(columns, ca.column)
-		args = append(args, ca.args...)
+	for _, k := range keys {
+		v := where[k]
+		column, arg := f.FormatWhereArg(index, k, v)
+		if column != "" {
+			columns = append(columns, column)
+			args = append(args, arg...)
+			index += len(arg) // Increment index by the number of arguments used
+		}
 	}
 
 	return strings.Join(columns, " AND "), args
@@ -318,9 +310,4 @@ func (f *formatter) formatIn(args []interface{}) string {
 
 func (f *formatter) formatIs(_ interface{}) string {
 	return "NULL"
-}
-
-type columnArg struct {
-	column string
-	args   []interface{}
 }
