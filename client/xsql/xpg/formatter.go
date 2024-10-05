@@ -267,9 +267,9 @@ func (f *formatter) FormatWhereArg(index int, k string, v interface{}) (string, 
 	case ex.IsNot:
 		return fmt.Sprintf("%s IS NOT %v", k, f.formatIs(value.Arg)), nil
 	case ex.In:
-		return fmt.Sprintf("%s IN (%s)", k, f.formatIn(value)), value
+		return fmt.Sprintf("%s IN (%s)", k, f.formatIn(index, value)), value
 	case ex.NotIn:
-		return fmt.Sprintf("%s NOT IN (%s)", k, f.formatIn(value)), value
+		return fmt.Sprintf("%s NOT IN (%s)", k, f.formatIn(index, value)), value
 	case ex.Btwn:
 		return fmt.Sprintf("%s BETWEEN $%d AND $%d", k, index, index+1), []interface{}{value.Start, value.End}
 	case ex.NotBtwn:
@@ -303,9 +303,12 @@ func (f *formatter) FormatWhere(where ex.Where, index int) (string, []interface{
 	return strings.Join(columns, " AND "), args
 }
 
-func (f *formatter) formatIn(args []interface{}) string {
-	qs := strings.Repeat("?", len(args))
-	return strings.Join(strings.Split(qs, ""), ",")
+func (f *formatter) formatIn(index int, args []interface{}) string {
+	params := make([]string, len(args))
+	for i := range args {
+		params[i] = fmt.Sprintf("$%d", index+i)
+	}
+	return strings.Join(params, ",")
 }
 
 func (f *formatter) formatIs(_ interface{}) string {
