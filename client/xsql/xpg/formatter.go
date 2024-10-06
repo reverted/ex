@@ -94,8 +94,8 @@ func (f *formatter) FormatInsert(cmd ex.Command) ex.Statement {
 
 	stmt = "INSERT INTO " + cmd.Resource
 
-	if columns, columnArgs := f.FormatValues(cmd.Values, 1); columns != "" {
-		stmt += " SET " + columns
+	if columns, columnArgs := f.FormatInsertValues(cmd.Values, 1); columns != "" {
+		stmt += " " + columns
 		args = append(args, columnArgs...)
 	}
 
@@ -137,7 +137,7 @@ func (f *formatter) FormatUpdate(cmd ex.Command) ex.Statement {
 func (f *formatter) FormatValueArg(index int, k string, v interface{}) (string, []interface{}) {
 	switch value := v.(type) {
 	case ex.Literal:
-		return fmt.Sprintf("%s=%s", k, value.Arg), nil
+		return fmt.Sprintf("%s = %s", k, value.Arg), nil
 
 	case ex.Json:
 		data, _ := json.Marshal(value.Arg)
@@ -169,14 +169,39 @@ func (f *formatter) FormatValues(values ex.Values, index int) (string, []interfa
 	for _, k := range keys {
 		v := values[k]
 		column, arg := f.FormatValueArg(index, k, v)
-		if column != "" {
-			columns = append(columns, column)
-			args = append(args, arg...)
-			index += len(arg) // Increment index by the number of arguments used
-		}
+		columns = append(columns, column)
+		args = append(args, arg...)
+		index += len(arg) // Increment index by the number of arguments used
 	}
 
 	return strings.Join(columns, ","), args
+}
+
+func (f *formatter) FormatInsertValues(values ex.Values, index int) (string, []interface{}) {
+
+	var keys []string
+	for k := range values {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var columns []string
+	var placeholders []string
+	var args []interface{}
+
+	for _, k := range keys {
+		v := values[k]
+		_, arg := f.FormatValueArg(index, k, v)
+		columns = append(columns, k)
+		placeholders = append(placeholders, fmt.Sprintf("$%d", index))
+		args = append(args, arg...)
+		index++
+	}
+
+	columnsStr := strings.Join(columns, ", ")
+	placeholdersStr := strings.Join(placeholders, ", ")
+
+	return fmt.Sprintf("(%s) VALUES (%s)", columnsStr, placeholdersStr), args
 }
 
 func (f *formatter) FormatOrder(order ex.Order) string {

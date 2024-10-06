@@ -136,7 +136,7 @@ func (f *formatter) FormatUpdate(cmd ex.Command) ex.Statement {
 func (f *formatter) FormatValueArg(k string, v interface{}) (string, []interface{}) {
 	switch value := v.(type) {
 	case ex.Literal:
-		return fmt.Sprintf("%s=%s", k, value.Arg), nil
+		return fmt.Sprintf("%s = %s", k, value.Arg), nil
 
 	case ex.Json:
 		data, _ := json.Marshal(value.Arg)

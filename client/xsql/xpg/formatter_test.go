@@ -149,7 +149,7 @@ var _ = Describe("Formatter", func() {
 		})
 
 		It("formats the command", func() {
-			Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
+			Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1)"))
 			Expect(stmt.Args).To(ConsistOf("value"))
 		})
 
@@ -162,7 +162,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1 ON CONFLICT DO UPDATE SET key = excluded.key"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1) ON CONFLICT DO UPDATE SET key = excluded.key"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
@@ -175,7 +175,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1)"))
 				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
 			})
 		})
@@ -188,7 +188,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1)"))
 				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
 			})
 		})
@@ -201,7 +201,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1)"))
 				Expect(stmt.Args).To(ConsistOf("[\"value1\",\"value2\"]"))
 			})
 		})
@@ -214,7 +214,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1)"))
 				Expect(stmt.Args).To(ConsistOf("{\"key\":0}"))
 			})
 		})
@@ -227,7 +227,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command as json", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1)"))
 				Expect(stmt.Args).To(ConsistOf("{\"key\":\"value\"}"))
 			})
 		})
@@ -241,7 +241,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1 ON CONFLICT DO NOTHING"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1) ON CONFLICT DO NOTHING"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
@@ -255,7 +255,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources SET key = $1"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1)"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
