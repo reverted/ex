@@ -157,12 +157,15 @@ var _ = Describe("Formatter", func() {
 			BeforeEach(func() {
 				cmd = ex.Insert("resources",
 					ex.Values{"key": "value"},
-					ex.OnConflictUpdate{"key"},
+					ex.OnConstraintConflict{
+						Constraint:    "key",
+						UpdateColumns: []string{"key"},
+					},
 				)
 			})
 
 			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1) ON CONFLICT DO UPDATE SET key = excluded.key"))
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1) ON CONFLICT (key) DO UPDATE SET key = EXCLUDED.key"))
 				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})

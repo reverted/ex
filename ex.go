@@ -103,9 +103,10 @@ func (o Offset) opt(cmd *Command) {
 }
 
 type OnConflict struct {
-	Update OnConflictUpdate
-	Ignore OnConflictIgnore
-	Error  OnConflictError
+	Constraint OnConstraintConflict
+	Update     OnConflictUpdate
+	Ignore     OnConflictIgnore
+	Error      OnConflictError
 }
 
 func (o OnConflict) opt(cmd *Command) {
@@ -116,6 +117,15 @@ type OnConflictUpdate []string
 
 func (o OnConflictUpdate) opt(cmd *Command) {
 	cmd.OnConflict.Update = o
+}
+
+type OnConstraintConflict struct {
+	Constraint    string
+	UpdateColumns []string
+}
+
+func (o OnConstraintConflict) opt(cmd *Command) {
+	cmd.OnConflict.Constraint = o
 }
 
 type OnConflictIgnore string

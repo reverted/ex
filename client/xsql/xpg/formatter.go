@@ -227,6 +227,10 @@ func (f *formatter) FormatOffset(offset ex.Offset) string {
 
 func (f *formatter) FormatConflict(conflict ex.OnConflict) string {
 
+	if c := conflict.Constraint; len(c.UpdateColumns) > 0 {
+		return f.FormatConstraintConflict(c)
+	}
+
 	if c := conflict.Update; len(c) > 0 {
 		return f.FormatConflictUpdate(c)
 	}
@@ -242,15 +246,29 @@ func (f *formatter) FormatConflict(conflict ex.OnConflict) string {
 	return ""
 }
 
+func (f *formatter) FormatConstraintConflict(conflict ex.OnConstraintConflict) string {
+	var columns []string
+
+	for _, c := range conflict.UpdateColumns {
+		columns = append(columns, fmt.Sprintf("%s = EXCLUDED.%s", c, c))
+	}
+
+	if len(columns) > 0 {
+		return fmt.Sprintf("CONFLICT (%s) DO UPDATE SET %s", conflict.Constraint, strings.Join(columns, ","))
+	} else {
+		return ""
+	}
+}
+
 func (f *formatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) string {
 	var columns []string
 
 	for _, c := range conflict {
-		columns = append(columns, fmt.Sprintf("%s = excluded.%s", c, c))
+		columns = append(columns, fmt.Sprintf("%s = EXCLUDED.%s", c, c))
 	}
 
 	if len(columns) > 0 {
-		return "CONFLICT DO UPDATE SET " + strings.Join(columns, ",")
+		return fmt.Sprintf("CONFLICT (id) DO UPDATE SET %s", strings.Join(columns, ","))
 	} else {
 		return ""
 	}
