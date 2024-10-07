@@ -42,9 +42,9 @@ var _ = Describe("Formatter", func() {
 		BeforeEach(func() {
 			cmd = ex.Query("resources",
 				ex.Where{"key": "value"},
-				ex.Order{"key"},
-				ex.Limit{Arg: 1},
-				ex.Offset{Arg: 10},
+				ex.Order("key"),
+				ex.Limit(1),
+				ex.Offset(10),
 			)
 		})
 
@@ -66,7 +66,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has order", func() {
 			BeforeEach(func() {
-				cmd = ex.Query("resources", ex.Order{"key"})
+				cmd = ex.Query("resources", ex.Order("key"))
 			})
 
 			It("formats the command", func() {
@@ -76,7 +76,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has limit", func() {
 			BeforeEach(func() {
-				cmd = ex.Query("resources", ex.Limit{Arg: 1})
+				cmd = ex.Query("resources", ex.Limit(1))
 			})
 
 			It("formats the command", func() {
@@ -86,7 +86,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has offset", func() {
 			BeforeEach(func() {
-				cmd = ex.Query("resources", ex.Offset{Arg: 10})
+				cmd = ex.Query("resources", ex.Offset(10))
 			})
 
 			It("formats the command", func() {
@@ -99,8 +99,8 @@ var _ = Describe("Formatter", func() {
 		BeforeEach(func() {
 			cmd = ex.Delete("resources",
 				ex.Where{"key": "value"},
-				ex.Order{"key"},
-				ex.Limit{Arg: 1},
+				ex.Order("key"),
+				ex.Limit(1),
 			)
 		})
 
@@ -122,7 +122,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has order", func() {
 			BeforeEach(func() {
-				cmd = ex.Delete("resources", ex.Order{"key"})
+				cmd = ex.Delete("resources", ex.Order("key"))
 			})
 
 			It("formats the command", func() {
@@ -132,7 +132,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has limit", func() {
 			BeforeEach(func() {
-				cmd = ex.Delete("resources", ex.Limit{Arg: 1})
+				cmd = ex.Delete("resources", ex.Limit(1))
 			})
 
 			It("formats the command", func() {
@@ -222,10 +222,8 @@ var _ = Describe("Formatter", func() {
 			BeforeEach(func() {
 				cmd = ex.Insert("resources",
 					ex.Values{"key": "value"},
-					ex.OnConflict{
-						Constraint:    "key",
-						UpdateColumns: []string{"key"},
-					},
+					ex.OnConflictConstraint("key"),
+					ex.OnConflictUpdate("key"),
 				)
 			})
 
@@ -239,7 +237,7 @@ var _ = Describe("Formatter", func() {
 			BeforeEach(func() {
 				cmd = ex.Insert("resources",
 					ex.Values{"key": "value"},
-					ex.OnConflictUpdate{"key"},
+					ex.OnConflictUpdate("key"),
 				)
 			})
 
@@ -283,8 +281,8 @@ var _ = Describe("Formatter", func() {
 			cmd = ex.Update("resources",
 				ex.Values{"key1": "value1"},
 				ex.Where{"key2": "value2"},
-				ex.Order{"key"},
-				ex.Limit{Arg: 1},
+				ex.Order("key"),
+				ex.Limit(1),
 			)
 		})
 
@@ -317,7 +315,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has order", func() {
 			BeforeEach(func() {
-				cmd = ex.Update("resources", ex.Order{"key"})
+				cmd = ex.Update("resources", ex.Order("key"))
 			})
 
 			It("formats the command", func() {
@@ -327,7 +325,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the command has limit", func() {
 			BeforeEach(func() {
-				cmd = ex.Update("resources", ex.Limit{Arg: 1})
+				cmd = ex.Update("resources", ex.Limit(1))
 			})
 
 			It("formats the command", func() {

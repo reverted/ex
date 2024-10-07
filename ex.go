@@ -55,9 +55,9 @@ func cmd(action, resource string, opts ...opt) Command {
 		Resource:         resource,
 		Where:            Where{},
 		Values:           Values{},
-		Order:            Order{},
-		Limit:            Limit{},
-		Offset:           Offset{},
+		OrderConfig:      nil,
+		LimitConfig:      LimitConfig(0),
+		OffsetConfig:     OffsetConfig(0),
 		OnConflictConfig: OnConflictConfig{},
 	}
 
@@ -80,64 +80,70 @@ func (v Values) opt(cmd *Command) {
 	cmd.Values = v
 }
 
-type Order []string
-
-func (o Order) opt(cmd *Command) {
-	cmd.Order = o
+func Order(ordering ...string) opt {
+	return OrderConfig(ordering)
 }
 
-type Limit struct {
-	Arg int `json:"arg"`
+type OrderConfig []string
+
+func (c OrderConfig) opt(cmd *Command) {
+	cmd.OrderConfig = c
 }
 
-func (l Limit) opt(cmd *Command) {
-	cmd.Limit = l
+func Limit(limit int) opt {
+	return LimitConfig(limit)
 }
 
-type Offset struct {
-	Arg int `json:"arg"`
+type LimitConfig int
+
+func (c LimitConfig) opt(cmd *Command) {
+	cmd.LimitConfig = c
 }
 
-func (o Offset) opt(cmd *Command) {
-	cmd.Offset = o
+func Offset(offset int) opt {
+	return OffsetConfig(offset)
+}
+
+type OffsetConfig int
+
+func (c OffsetConfig) opt(cmd *Command) {
+	cmd.OffsetConfig = c
 }
 
 type OnConflictConfig struct {
-	Constraint OnConflict
-	Update     OnConflictUpdate
-	Ignore     OnConflictIgnore
-	Error      OnConflictError
+	Constraint []string
+	Update     []string
+	Ignore     string
+	Error      string
 }
 
 func (o OnConflictConfig) opt(cmd *Command) {
-	cmd.OnConflictConfig = o
+	cmd.OnConflictConfig.Constraint = append(cmd.OnConflictConfig.Constraint, o.Constraint...)
+	cmd.OnConflictConfig.Update = append(cmd.OnConflictConfig.Update, o.Update...)
+
+	if o.Ignore != "" {
+		cmd.OnConflictConfig.Ignore = o.Ignore
+	}
+
+	if o.Error != "" {
+		cmd.OnConflictConfig.Error = o.Error
+	}
 }
 
-type OnConflictUpdate []string
-
-func (o OnConflictUpdate) opt(cmd *Command) {
-	cmd.OnConflictConfig.Update = o
+func OnConflictUpdate(columns ...string) opt {
+	return OnConflictConfig{Update: columns}
 }
 
-type OnConflict struct {
-	Constraint    string   `json:"constraint"`
-	UpdateColumns []string `json:"update_columns"`
+func OnConflictConstraint(constraint ...string) opt {
+	return OnConflictConfig{Constraint: constraint}
 }
 
-func (o OnConflict) opt(cmd *Command) {
-	cmd.OnConflictConfig.Constraint = o
+func OnConflictIgnore(ignore string) opt {
+	return OnConflictConfig{Ignore: ignore}
 }
 
-type OnConflictIgnore string
-
-func (o OnConflictIgnore) opt(cmd *Command) {
-	cmd.OnConflictConfig.Ignore = o
-}
-
-type OnConflictError string
-
-func (o OnConflictError) opt(cmd *Command) {
-	cmd.OnConflictConfig.Error = o
+func OnConflictError(err string) opt {
+	return OnConflictConfig{Error: err}
 }
 
 type Eq struct {

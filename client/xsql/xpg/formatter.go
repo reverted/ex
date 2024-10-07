@@ -49,15 +49,15 @@ func (f *formatter) FormatQuery(cmd ex.Command) ex.Statement {
 		args = append(args, whereArgs...)
 	}
 
-	if clause := f.FormatOrder(cmd.Order); clause != "" {
+	if clause := f.FormatOrder(cmd.OrderConfig); clause != "" {
 		stmt += " ORDER BY " + clause
 	}
 
-	if clause := f.FormatLimit(cmd.Limit); clause != "" {
+	if clause := f.FormatLimit(int(cmd.LimitConfig)); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
-	if clause := f.FormatOffset(cmd.Offset); clause != "" {
+	if clause := f.FormatOffset(int(cmd.OffsetConfig)); clause != "" {
 		stmt += " OFFSET " + clause
 	}
 
@@ -76,11 +76,11 @@ func (f *formatter) FormatDelete(cmd ex.Command) ex.Statement {
 		args = append(args, whereArgs...)
 	}
 
-	if clause := f.FormatOrder(cmd.Order); clause != "" {
+	if clause := f.FormatOrder(cmd.OrderConfig); clause != "" {
 		stmt += " ORDER BY " + clause
 	}
 
-	if clause := f.FormatLimit(cmd.Limit); clause != "" {
+	if clause := f.FormatLimit(int(cmd.LimitConfig)); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
@@ -123,11 +123,11 @@ func (f *formatter) FormatUpdate(cmd ex.Command) ex.Statement {
 		args = append(args, whereArgs...)
 	}
 
-	if clause := f.FormatOrder(cmd.Order); clause != "" {
+	if clause := f.FormatOrder(cmd.OrderConfig); clause != "" {
 		stmt += " ORDER BY " + clause
 	}
 
-	if clause := f.FormatLimit(cmd.Limit); clause != "" {
+	if clause := f.FormatLimit(int(cmd.LimitConfig)); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
@@ -204,22 +204,22 @@ func (f *formatter) FormatInsertValues(values ex.Values, index int) (string, []i
 	return fmt.Sprintf("(%s) VALUES (%s)", columnsStr, placeholdersStr), args
 }
 
-func (f *formatter) FormatOrder(order ex.Order) string {
+func (f *formatter) FormatOrder(order []string) string {
 
 	return strings.Join(order, ",")
 }
 
-func (f *formatter) FormatLimit(limit ex.Limit) string {
-	if limit.Arg > 0 {
-		return fmt.Sprintf("%v", limit.Arg)
+func (f *formatter) FormatLimit(limit int) string {
+	if limit > 0 {
+		return fmt.Sprintf("%v", limit)
 	} else {
 		return ""
 	}
 }
 
-func (f *formatter) FormatOffset(offset ex.Offset) string {
-	if offset.Arg > 0 {
-		return fmt.Sprintf("%v", offset.Arg)
+func (f *formatter) FormatOffset(offset int) string {
+	if offset > 0 {
+		return fmt.Sprintf("%v", offset)
 	} else {
 		return ""
 	}
@@ -227,61 +227,30 @@ func (f *formatter) FormatOffset(offset ex.Offset) string {
 
 func (f *formatter) FormatConflict(conflict ex.OnConflictConfig) string {
 
-	if c := conflict.Constraint; len(c.UpdateColumns) > 0 {
-		return f.FormatConstraintConflict(c)
-	}
-
-	if c := conflict.Update; len(c) > 0 {
-		return f.FormatConflictUpdate(c)
-	}
-
-	if c := conflict.Ignore; c != "" {
-		return f.FormatConflictIgnore(c)
-	}
-
-	if c := conflict.Error; c != "" {
-		return f.FormatConflictError(c)
-	}
-
-	return ""
-}
-
-func (f *formatter) FormatConstraintConflict(conflict ex.OnConflict) string {
-	var columns []string
-
-	for _, c := range conflict.UpdateColumns {
-		columns = append(columns, fmt.Sprintf("%s = EXCLUDED.%s", c, c))
-	}
-
-	if len(columns) > 0 {
-		return fmt.Sprintf("CONFLICT (%s) DO UPDATE SET %s", conflict.Constraint, strings.Join(columns, ","))
-	} else {
+	if conflict.Error != "" {
 		return ""
 	}
-}
 
-func (f *formatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) string {
+	if conflict.Ignore != "" {
+		return "CONFLICT DO NOTHING"
+	}
+
 	var columns []string
 
-	for _, c := range conflict {
+	for _, c := range conflict.Update {
 		columns = append(columns, fmt.Sprintf("%s = EXCLUDED.%s", c, c))
 	}
 
-	if len(columns) > 0 {
+	switch {
+	case len(conflict.Constraint) > 0 && len(columns) > 0:
+		return fmt.Sprintf("CONFLICT (%s) DO UPDATE SET %s", strings.Join(conflict.Constraint, ","), strings.Join(columns, ","))
+	case len(conflict.Constraint) > 0:
+		return fmt.Sprintf("CONFLICT (%s) DO NOTHING", strings.Join(conflict.Constraint, ","))
+	case len(columns) > 0:
 		return fmt.Sprintf("CONFLICT (id) DO UPDATE SET %s", strings.Join(columns, ","))
-	} else {
+	default:
 		return ""
 	}
-}
-
-func (f *formatter) FormatConflictIgnore(conflict ex.OnConflictIgnore) string {
-
-	return "CONFLICT DO NOTHING"
-}
-
-func (f *formatter) FormatConflictError(conflict ex.OnConflictError) string {
-
-	return ""
 }
 
 func (f *formatter) FormatWhereArg(index int, k string, v interface{}) (string, []interface{}) {

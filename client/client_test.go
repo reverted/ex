@@ -82,7 +82,7 @@ var _ = Describe("Client", func() {
 
 					Context("inserting a record with conflict update", func() {
 						BeforeEach(func() {
-							req = ex.Insert("resources", ex.Values{"id": 1, "name": "resource-4"}, ex.OnConflictUpdate{"name"})
+							req = ex.Insert("resources", ex.Values{"id": 1, "name": "resource-4"}, ex.OnConflictUpdate("name"))
 						})
 
 						It("succeeds", func() {
@@ -364,7 +364,7 @@ var _ = Describe("Client", func() {
 
 					Context("with order clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Order{"name desc"})
+							req = ex.Query("resources", ex.Order("name desc"))
 						})
 
 						It("returns queried results", func() {
@@ -378,7 +378,7 @@ var _ = Describe("Client", func() {
 
 					Context("with limit clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Limit{Arg: 1})
+							req = ex.Query("resources", ex.Limit(1))
 						})
 
 						It("returns queried results", func() {
@@ -390,7 +390,7 @@ var _ = Describe("Client", func() {
 
 					Context("with limit and offset clauses", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Limit{Arg: 1}, ex.Offset{Arg: 1})
+							req = ex.Query("resources", ex.Limit(1), ex.Offset(1))
 						})
 
 						It("returns queried results", func() {
@@ -402,7 +402,7 @@ var _ = Describe("Client", func() {
 
 					Context("with offset (no limit) clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Offset{Arg: 1})
+							req = ex.Query("resources", ex.Offset(1))
 						})
 
 						It("errors", func() {
@@ -716,7 +716,7 @@ var _ = Describe("Client", func() {
 
 					Context("with limit clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Limit{Arg: 1})
+							req = ex.Delete("resources", ex.Limit(1))
 						})
 
 						It("returns deleted results", func() {
@@ -1065,7 +1065,7 @@ var _ = Describe("Client", func() {
 
 					Context("with limit clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Limit{Arg: 2})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Limit(2))
 						})
 
 						It("returns modified results", func() {
@@ -1185,7 +1185,7 @@ var _ = Describe("Client", func() {
 			var data result
 
 			BeforeEach(func() {
-				req := ex.Query("resources", ex.Limit{Arg: 1})
+				req := ex.Query("resources", ex.Limit(1))
 				err = sqlClient.Exec(req, &data)
 			})
 
@@ -1204,7 +1204,7 @@ var _ = Describe("Client", func() {
 			var data *result
 
 			BeforeEach(func() {
-				req := ex.Query("resources", ex.Limit{Arg: 1})
+				req := ex.Query("resources", ex.Limit(1))
 				err = sqlClient.Exec(req, &data)
 			})
 
@@ -1223,7 +1223,7 @@ var _ = Describe("Client", func() {
 			var data map[string]interface{}
 
 			BeforeEach(func() {
-				req := ex.Query("resources", ex.Limit{Arg: 1})
+				req := ex.Query("resources", ex.Limit(1))
 				err = sqlClient.Exec(req, &data)
 			})
 

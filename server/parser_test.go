@@ -68,7 +68,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Query("resources", ex.Order{"name"})))
+				Expect(res).To(Equal(ex.Query("resources", ex.Order("name"))))
 			})
 		})
 
@@ -78,7 +78,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Query("resources", ex.Limit{Arg: 1})))
+				Expect(res).To(Equal(ex.Query("resources", ex.Limit(1))))
 			})
 		})
 
@@ -98,7 +98,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Query("resources", ex.Offset{Arg: 10})))
+				Expect(res).To(Equal(ex.Query("resources", ex.Offset(10))))
 			})
 		})
 
@@ -134,7 +134,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Delete("resources", ex.Order{"name"})))
+				Expect(res).To(Equal(ex.Delete("resources", ex.Order("name"))))
 			})
 		})
 
@@ -144,7 +144,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Delete("resources", ex.Limit{Arg: 1})))
+				Expect(res).To(Equal(ex.Delete("resources", ex.Limit(1))))
 			})
 		})
 
@@ -176,11 +176,11 @@ var _ = Describe("Parser", func() {
 
 		Context("when the request has a conflict constraint", func() {
 			BeforeEach(func() {
-				req.Header.Add("X-On-Conflict", "{\"constraint\":\"key1\",\"update_columns\":[\"key1\",\"key2\"]}")
+				req.Header.Add("X-On-Conflict-Constraint", "key1,key2")
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflict{Constraint: "key1", UpdateColumns: []string{"key1", "key2"}})))
+				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictConstraint("key1", "key2"))))
 			})
 		})
 
@@ -190,7 +190,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictUpdate{"key1", "key2"})))
+				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictUpdate("key1", "key2"))))
 			})
 		})
 
@@ -248,7 +248,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Update("resources", ex.Order{"name"})))
+				Expect(res).To(Equal(ex.Update("resources", ex.Order("name"))))
 			})
 		})
 
@@ -258,7 +258,7 @@ var _ = Describe("Parser", func() {
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Update("resources", ex.Limit{Arg: 1})))
+				Expect(res).To(Equal(ex.Update("resources", ex.Limit(1))))
 			})
 		})
 

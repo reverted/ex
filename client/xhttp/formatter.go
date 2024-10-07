@@ -128,16 +128,20 @@ func (f *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 func (f *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
 	res := map[string]string{}
 
-	if len(cmd.Order) > 0 {
-		res["X-Order-By"] = strings.Join(cmd.Order, ",")
+	if len(cmd.OrderConfig) > 0 {
+		res["X-Order-By"] = strings.Join(cmd.OrderConfig, ",")
 	}
 
-	if cmd.Limit.Arg > 0 {
-		res["X-Limit"] = fmt.Sprintf("%v", cmd.Limit.Arg)
+	if cmd.LimitConfig > 0 {
+		res["X-Limit"] = fmt.Sprintf("%v", cmd.LimitConfig)
 	}
 
-	if cmd.Offset.Arg > 0 {
-		res["X-Offset"] = fmt.Sprintf("%v", cmd.Offset.Arg)
+	if cmd.OffsetConfig > 0 {
+		res["X-Offset"] = fmt.Sprintf("%v", cmd.OffsetConfig)
+	}
+
+	if c := cmd.OnConflictConfig.Constraint; len(c) > 0 {
+		res["X-On-Conflict-Constraint"] = strings.Join(c, ",")
 	}
 
 	if c := cmd.OnConflictConfig.Update; len(c) > 0 {
@@ -145,19 +149,11 @@ func (f *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
 	}
 
 	if c := cmd.OnConflictConfig.Ignore; c != "" {
-		res["X-On-Conflict-Ignore"] = fmt.Sprintf("%v", c)
+		res["X-On-Conflict-Ignore"] = c
 	}
 
 	if c := cmd.OnConflictConfig.Error; c != "" {
-		res["X-On-Conflict-Error"] = fmt.Sprintf("%v", c)
-	}
-
-	if c := cmd.OnConflictConfig.Constraint; len(c.UpdateColumns) > 0 {
-		bytes, err := json.Marshal(c)
-		if err != nil {
-			return nil, err
-		}
-		res["X-On-Conflict"] = string(bytes)
+		res["X-On-Conflict-Error"] = c
 	}
 
 	return res, nil

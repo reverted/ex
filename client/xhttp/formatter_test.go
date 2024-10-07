@@ -78,7 +78,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has order", func() {
 			BeforeEach(func() {
-				req = ex.Query("resources", ex.Order{"key"})
+				req = ex.Query("resources", ex.Order("key"))
 			})
 
 			It("formats the request", func() {
@@ -90,7 +90,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req = ex.Query("resources", ex.Limit{Arg: 1})
+				req = ex.Query("resources", ex.Limit(1))
 			})
 
 			It("formats the request", func() {
@@ -102,7 +102,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has offset", func() {
 			BeforeEach(func() {
-				req = ex.Query("resources", ex.Offset{Arg: 10})
+				req = ex.Query("resources", ex.Offset(10))
 			})
 
 			It("formats the request", func() {
@@ -136,7 +136,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has order", func() {
 			BeforeEach(func() {
-				req = ex.Delete("resources", ex.Order{"key"})
+				req = ex.Delete("resources", ex.Order("key"))
 			})
 
 			It("formats the request", func() {
@@ -148,7 +148,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req = ex.Delete("resources", ex.Limit{Arg: 1})
+				req = ex.Delete("resources", ex.Limit(1))
 			})
 
 			It("formats the request", func() {
@@ -183,22 +183,21 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has conflict constraint", func() {
 			BeforeEach(func() {
-				req = ex.Insert("resources", ex.OnConflict{
-					Constraint:    "key1",
-					UpdateColumns: []string{"key1", "key2"},
-				})
+				req = ex.Insert("resources",
+					ex.OnConflictConstraint("key1", "key2"),
+				)
 			})
 
 			It("formats the request", func() {
 				Expect(res.Method).To(Equal("POST"))
 				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
-				Expect(res.Header.Get("X-On-Conflict")).To(Equal("{\"constraint\":\"key1\",\"update_columns\":[\"key1\",\"key2\"]}"))
+				Expect(res.Header.Get("X-On-Conflict-Constraint")).To(Equal("key1,key2"))
 			})
 		})
 
 		Context("when the request has conflict update", func() {
 			BeforeEach(func() {
-				req = ex.Insert("resources", ex.OnConflictUpdate{"key1", "key2"})
+				req = ex.Insert("resources", ex.OnConflictUpdate("key1", "key2"))
 			})
 
 			It("formats the request", func() {
@@ -268,7 +267,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has order", func() {
 			BeforeEach(func() {
-				req = ex.Update("resources", ex.Order{"key"})
+				req = ex.Update("resources", ex.Order("key"))
 			})
 
 			It("formats the request", func() {
@@ -280,7 +279,7 @@ var _ = Describe("Formatter", func() {
 
 		Context("when the request has limit", func() {
 			BeforeEach(func() {
-				req = ex.Update("resources", ex.Limit{Arg: 1})
+				req = ex.Update("resources", ex.Limit(1))
 			})
 
 			It("formats the request", func() {

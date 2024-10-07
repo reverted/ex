@@ -106,16 +106,16 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Command, error) {
 
 	switch r.Method {
 	case "GET":
-		return ex.Query(resource, where, order, limit, offset), nil
+		return ex.Query(resource, where, ex.Order(order...), ex.Limit(limit), ex.Offset(offset)), nil
 
 	case "DELETE":
-		return ex.Delete(resource, where, order, limit), nil
+		return ex.Delete(resource, where, ex.Order(order...), ex.Limit(limit)), nil
 
 	case "POST":
 		return ex.Insert(resource, values, conflict), nil
 
 	case "PUT":
-		return ex.Update(resource, values, where, order, limit), nil
+		return ex.Update(resource, values, where, ex.Order(order...), ex.Limit(limit)), nil
 
 	default:
 		return ex.Command{}, errors.New("Unsupported method '" + r.Method + "'")
@@ -138,53 +138,49 @@ func (p *parser) ParseValues(r *http.Request) (ex.Values, error) {
 	return values, nil
 }
 
-func (p *parser) ParseOrder(r *http.Request) (ex.Order, error) {
+func (p *parser) ParseOrder(r *http.Request) ([]string, error) {
 	if param := r.Header.Get("X-Order-By"); len(param) > 0 {
-		return ex.Order(strings.Split(param, ",")), nil
+		return strings.Split(param, ","), nil
 	} else {
-		return ex.Order{}, nil
+		return nil, nil
 	}
 }
 
-func (p *parser) ParseLimit(r *http.Request) (ex.Limit, error) {
+func (p *parser) ParseLimit(r *http.Request) (int, error) {
 	if param := r.Header.Get("X-Limit"); len(param) > 0 {
 		limit, err := strconv.Atoi(param)
-		return ex.Limit{Arg: limit}, err
+		return limit, err
 	} else {
-		return ex.Limit{}, nil
+		return 0, nil
 	}
 }
 
-func (p *parser) ParseOffset(r *http.Request) (ex.Offset, error) {
+func (p *parser) ParseOffset(r *http.Request) (int, error) {
 	if param := r.Header.Get("X-Offset"); len(param) > 0 {
 		offset, err := strconv.Atoi(param)
-		return ex.Offset{Arg: offset}, err
+		return offset, err
 	} else {
-		return ex.Offset{}, nil
+		return 0, nil
 	}
 }
 
 func (p *parser) ParseConflict(r *http.Request) (ex.OnConflictConfig, error) {
 	conflict := ex.OnConflictConfig{}
 
-	if param := r.Header.Get("X-On-Conflict"); len(param) > 0 {
-		var constraint ex.OnConflict
-		if err := json.Unmarshal([]byte(param), &constraint); err != nil {
-			return ex.OnConflictConfig{}, err
-		}
-		conflict.Constraint = constraint
+	if param := r.Header.Get("X-On-Conflict-Constraint"); len(param) > 0 {
+		conflict.Constraint = strings.Split(param, ",")
 	}
 
 	if param := r.Header.Get("X-On-Conflict-Update"); len(param) > 0 {
-		conflict.Update = ex.OnConflictUpdate(strings.Split(param, ","))
+		conflict.Update = strings.Split(param, ",")
 	}
 
 	if param := r.Header.Get("X-On-Conflict-Ignore"); len(param) > 0 {
-		conflict.Ignore = ex.OnConflictIgnore(param)
+		conflict.Ignore = param
 	}
 
 	if param := r.Header.Get("X-On-Conflict-Error"); len(param) > 0 {
-		conflict.Error = ex.OnConflictError(param)
+		conflict.Error = param
 	}
 
 	return conflict, nil

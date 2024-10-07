@@ -37,9 +37,9 @@ type Command struct {
 	Resource         string
 	Where            Where
 	Values           Values
-	Order            Order
-	Limit            Limit
-	Offset           Offset
+	OrderConfig      OrderConfig
+	LimitConfig      LimitConfig
+	OffsetConfig     OffsetConfig
 	OnConflictConfig OnConflictConfig
 }
 
@@ -52,13 +52,17 @@ func (c Command) MarshalJSON() ([]byte, error) {
 		"resource": c.Resource,
 		"where":    format(c.Where),
 		"values":   c.Values,
-		"order":    strings.Join(c.Order, ","),
-		"limit":    c.Limit.Arg,
-		"offset":   c.Offset.Arg,
+		"order":    c.OrderConfig,
+		"limit":    c.LimitConfig,
+		"offset":   c.OffsetConfig,
+	}
+
+	if c := c.OnConflictConfig.Constraint; len(c) > 0 {
+		fields["on_conflict_constraint"] = c
 	}
 
 	if c := c.OnConflictConfig.Update; len(c) > 0 {
-		fields["on_conflict_update"] = strings.Join(c, ",")
+		fields["on_conflict_update"] = c
 	}
 
 	if c := c.OnConflictConfig.Ignore; c != "" {
@@ -91,24 +95,29 @@ func (c *Command) UnmarshalJSON(b []byte) error {
 		opts = append(opts, Values(values))
 	}
 
-	order, ok := contents["order"].(string)
+	order, ok := contents["order"].([]string)
 	if ok {
-		opts = append(opts, Order(strings.Split(order, ",")))
+		opts = append(opts, Order(order...))
 	}
 
 	limit, ok := contents["limit"].(int)
 	if ok {
-		opts = append(opts, Limit{limit})
+		opts = append(opts, Limit(limit))
 	}
 
 	offset, ok := contents["offset"].(int)
 	if ok {
-		opts = append(opts, Offset{offset})
+		opts = append(opts, Offset(offset))
 	}
 
-	conflictUpdate, ok := contents["on_conflict_update"].(string)
+	conflictConstraint, ok := contents["on_conflict_constraint"].([]string)
 	if ok {
-		opts = append(opts, OnConflictUpdate(strings.Split(conflictUpdate, ",")))
+		opts = append(opts, OnConflictConstraint(conflictConstraint...))
+	}
+
+	conflictUpdate, ok := contents["on_conflict_update"].([]string)
+	if ok {
+		opts = append(opts, OnConflictUpdate(conflictUpdate...))
 	}
 
 	conflictIgnore, ok := contents["on_conflict_ignore"].(string)

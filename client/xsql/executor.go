@@ -227,7 +227,7 @@ func (e *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data inter
 	defer span.Finish()
 
 	if data != nil {
-		q := ex.Query(cmd.Resource, cmd.Where, cmd.Limit, cmd.Offset)
+		q := ex.Query(cmd.Resource, cmd.Where, cmd.LimitConfig, cmd.OffsetConfig)
 		if err := e.query(spanCtx, tx, q, data); err != nil {
 			return err
 		}
@@ -294,7 +294,7 @@ func (e *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data inter
 			}
 		}
 
-		q := ex.Query(cmd.Resource, where, cmd.Limit, cmd.Offset)
+		q := ex.Query(cmd.Resource, where, cmd.LimitConfig, cmd.OffsetConfig)
 		return e.query(spanCtx, tx, q, data)
 	}
 

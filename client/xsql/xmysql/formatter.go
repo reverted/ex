@@ -48,15 +48,15 @@ func (f *formatter) FormatQuery(cmd ex.Command) ex.Statement {
 		args = append(args, whereArgs...)
 	}
 
-	if clause := f.FormatOrder(cmd.Order); clause != "" {
+	if clause := f.FormatOrder(cmd.OrderConfig); clause != "" {
 		stmt += " ORDER BY " + clause
 	}
 
-	if clause := f.FormatLimit(cmd.Limit); clause != "" {
+	if clause := f.FormatLimit(int(cmd.LimitConfig)); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
-	if clause := f.FormatOffset(cmd.Offset); clause != "" {
+	if clause := f.FormatOffset(int(cmd.OffsetConfig)); clause != "" {
 		stmt += " OFFSET " + clause
 	}
 
@@ -75,11 +75,11 @@ func (f *formatter) FormatDelete(cmd ex.Command) ex.Statement {
 		args = append(args, whereArgs...)
 	}
 
-	if clause := f.FormatOrder(cmd.Order); clause != "" {
+	if clause := f.FormatOrder(cmd.OrderConfig); clause != "" {
 		stmt += " ORDER BY " + clause
 	}
 
-	if clause := f.FormatLimit(cmd.Limit); clause != "" {
+	if clause := f.FormatLimit(int(cmd.LimitConfig)); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
@@ -122,11 +122,11 @@ func (f *formatter) FormatUpdate(cmd ex.Command) ex.Statement {
 		args = append(args, whereArgs...)
 	}
 
-	if clause := f.FormatOrder(cmd.Order); clause != "" {
+	if clause := f.FormatOrder(cmd.OrderConfig); clause != "" {
 		stmt += " ORDER BY " + clause
 	}
 
-	if clause := f.FormatLimit(cmd.Limit); clause != "" {
+	if clause := f.FormatLimit(int(cmd.LimitConfig)); clause != "" {
 		stmt += " LIMIT " + clause
 	}
 
@@ -177,22 +177,22 @@ func (f *formatter) FormatValues(values ex.Values) (string, []interface{}) {
 	return strings.Join(columns, ","), args
 }
 
-func (f *formatter) FormatOrder(order ex.Order) string {
+func (f *formatter) FormatOrder(order []string) string {
 
 	return strings.Join(order, ",")
 }
 
-func (f *formatter) FormatLimit(limit ex.Limit) string {
-	if limit.Arg > 0 {
-		return fmt.Sprintf("%v", limit.Arg)
+func (f *formatter) FormatLimit(limit int) string {
+	if limit > 0 {
+		return fmt.Sprintf("%v", limit)
 	} else {
 		return ""
 	}
 }
 
-func (f *formatter) FormatOffset(offset ex.Offset) string {
-	if offset.Arg > 0 {
-		return fmt.Sprintf("%v", offset.Arg)
+func (f *formatter) FormatOffset(offset int) string {
+	if offset > 0 {
+		return fmt.Sprintf("%v", offset)
 	} else {
 		return ""
 	}
@@ -200,33 +200,21 @@ func (f *formatter) FormatOffset(offset ex.Offset) string {
 
 func (f *formatter) FormatConflict(conflict ex.OnConflictConfig) string {
 
-	if c := conflict.Constraint; len(c.UpdateColumns) > 0 {
-		return f.FormatConstraintConflict(c)
-	}
-
-	if c := conflict.Update; len(c) > 0 {
-		return f.FormatConflictUpdate(c)
+	if conflict.Error != "" {
+		return ""
 	}
 
 	if c := conflict.Ignore; c != "" {
-		return f.FormatConflictIgnore(c)
+		if c == "true" {
+			return "DUPLICATE KEY UPDATE id = id"
+		} else {
+			return fmt.Sprintf("DUPLICATE KEY UPDATE %s = %s", c, c)
+		}
 	}
 
-	if c := conflict.Error; c != "" {
-		return f.FormatConflictError(c)
-	}
-
-	return ""
-}
-
-func (f *formatter) FormatConstraintConflict(conflict ex.OnConflict) string {
-	return f.FormatConflictUpdate(conflict.UpdateColumns)
-}
-
-func (f *formatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) string {
 	var columns []string
 
-	for _, c := range conflict {
+	for _, c := range conflict.Update {
 		columns = append(columns, fmt.Sprintf("%s = VALUES(%s)", c, c))
 	}
 
@@ -235,20 +223,7 @@ func (f *formatter) FormatConflictUpdate(conflict ex.OnConflictUpdate) string {
 	} else {
 		return ""
 	}
-}
 
-func (f *formatter) FormatConflictIgnore(conflict ex.OnConflictIgnore) string {
-
-	if conflict == "true" {
-		return "DUPLICATE KEY UPDATE id = id"
-	} else {
-		return fmt.Sprintf("DUPLICATE KEY UPDATE %s = %s", conflict, conflict)
-	}
-}
-
-func (f *formatter) FormatConflictError(conflict ex.OnConflictError) string {
-
-	return ""
 }
 
 func (f *formatter) FormatWhereArg(k string, v interface{}) (string, []interface{}) {
