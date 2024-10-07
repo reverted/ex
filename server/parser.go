@@ -164,8 +164,16 @@ func (p *parser) ParseOffset(r *http.Request) (ex.Offset, error) {
 	}
 }
 
-func (p *parser) ParseConflict(r *http.Request) (ex.OnConflict, error) {
-	conflict := ex.OnConflict{}
+func (p *parser) ParseConflict(r *http.Request) (ex.OnConflictConfig, error) {
+	conflict := ex.OnConflictConfig{}
+
+	if param := r.Header.Get("X-On-Conflict"); len(param) > 0 {
+		var constraint ex.OnConflict
+		if err := json.Unmarshal([]byte(param), &constraint); err != nil {
+			return ex.OnConflictConfig{}, err
+		}
+		conflict.Constraint = constraint
+	}
 
 	if param := r.Header.Get("X-On-Conflict-Update"); len(param) > 0 {
 		conflict.Update = ex.OnConflictUpdate(strings.Split(param, ","))

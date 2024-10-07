@@ -181,6 +181,21 @@ var _ = Describe("Formatter", func() {
 			})
 		})
 
+		Context("when the request has conflict constraint", func() {
+			BeforeEach(func() {
+				req = ex.Insert("resources", ex.OnConflict{
+					Constraint:    "key1",
+					UpdateColumns: []string{"key1", "key2"},
+				})
+			})
+
+			It("formats the request", func() {
+				Expect(res.Method).To(Equal("POST"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-On-Conflict")).To(Equal("{\"constraint\":\"key1\",\"update_columns\":[\"key1\",\"key2\"]}"))
+			})
+		})
+
 		Context("when the request has conflict update", func() {
 			BeforeEach(func() {
 				req = ex.Insert("resources", ex.OnConflictUpdate{"key1", "key2"})

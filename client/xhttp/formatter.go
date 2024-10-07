@@ -140,16 +140,24 @@ func (f *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
 		res["X-Offset"] = fmt.Sprintf("%v", cmd.Offset.Arg)
 	}
 
-	if c := cmd.OnConflict.Update; len(c) > 0 {
+	if c := cmd.OnConflictConfig.Update; len(c) > 0 {
 		res["X-On-Conflict-Update"] = strings.Join(c, ",")
 	}
 
-	if c := cmd.OnConflict.Ignore; c != "" {
+	if c := cmd.OnConflictConfig.Ignore; c != "" {
 		res["X-On-Conflict-Ignore"] = fmt.Sprintf("%v", c)
 	}
 
-	if c := cmd.OnConflict.Error; c != "" {
+	if c := cmd.OnConflictConfig.Error; c != "" {
 		res["X-On-Conflict-Error"] = fmt.Sprintf("%v", c)
+	}
+
+	if c := cmd.OnConflictConfig.Constraint; len(c.UpdateColumns) > 0 {
+		bytes, err := json.Marshal(c)
+		if err != nil {
+			return nil, err
+		}
+		res["X-On-Conflict"] = string(bytes)
 	}
 
 	return res, nil

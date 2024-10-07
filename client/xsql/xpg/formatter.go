@@ -99,7 +99,7 @@ func (f *formatter) FormatInsert(cmd ex.Command) ex.Statement {
 		args = append(args, columnArgs...)
 	}
 
-	if clause := f.FormatConflict(cmd.OnConflict); clause != "" {
+	if clause := f.FormatConflict(cmd.OnConflictConfig); clause != "" {
 		stmt += " ON " + clause
 	}
 
@@ -225,7 +225,7 @@ func (f *formatter) FormatOffset(offset ex.Offset) string {
 	}
 }
 
-func (f *formatter) FormatConflict(conflict ex.OnConflict) string {
+func (f *formatter) FormatConflict(conflict ex.OnConflictConfig) string {
 
 	if c := conflict.Constraint; len(c.UpdateColumns) > 0 {
 		return f.FormatConstraintConflict(c)
@@ -246,7 +246,7 @@ func (f *formatter) FormatConflict(conflict ex.OnConflict) string {
 	return ""
 }
 
-func (f *formatter) FormatConstraintConflict(conflict ex.OnConstraintConflict) string {
+func (f *formatter) FormatConstraintConflict(conflict ex.OnConflict) string {
 	var columns []string
 
 	for _, c := range conflict.UpdateColumns {

@@ -33,14 +33,14 @@ type Statement struct {
 func (s Statement) exec() {}
 
 type Command struct {
-	Action     string
-	Resource   string
-	Where      Where
-	Values     Values
-	Order      Order
-	Limit      Limit
-	Offset     Offset
-	OnConflict OnConflict
+	Action           string
+	Resource         string
+	Where            Where
+	Values           Values
+	Order            Order
+	Limit            Limit
+	Offset           Offset
+	OnConflictConfig OnConflictConfig
 }
 
 func (c Command) exec() {}
@@ -57,15 +57,15 @@ func (c Command) MarshalJSON() ([]byte, error) {
 		"offset":   c.Offset.Arg,
 	}
 
-	if c := c.OnConflict.Update; len(c) > 0 {
+	if c := c.OnConflictConfig.Update; len(c) > 0 {
 		fields["on_conflict_update"] = strings.Join(c, ",")
 	}
 
-	if c := c.OnConflict.Ignore; c != "" {
+	if c := c.OnConflictConfig.Ignore; c != "" {
 		fields["on_conflict_ignore"] = c
 	}
 
-	if c := c.OnConflict.Error; c != "" {
+	if c := c.OnConflictConfig.Error; c != "" {
 		fields["on_conflict_error"] = c
 	}
 

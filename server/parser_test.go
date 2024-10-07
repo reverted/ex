@@ -174,6 +174,16 @@ var _ = Describe("Parser", func() {
 			})
 		})
 
+		Context("when the request has a conflict constraint", func() {
+			BeforeEach(func() {
+				req.Header.Add("X-On-Conflict", "{\"constraint\":\"key1\",\"update_columns\":[\"key1\",\"key2\"]}")
+			})
+
+			It("parses the request", func() {
+				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflict{Constraint: "key1", UpdateColumns: []string{"key1", "key2"}})))
+			})
+		})
+
 		Context("when the request has a conflict update", func() {
 			BeforeEach(func() {
 				req.Header.Add("X-On-Conflict-Update", "key1,key2")

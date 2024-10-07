@@ -153,23 +153,6 @@ var _ = Describe("Formatter", func() {
 			Expect(stmt.Args).To(ConsistOf("value"))
 		})
 
-		Context("when the command has conflict update", func() {
-			BeforeEach(func() {
-				cmd = ex.Insert("resources",
-					ex.Values{"key": "value"},
-					ex.OnConstraintConflict{
-						Constraint:    "key",
-						UpdateColumns: []string{"key"},
-					},
-				)
-			})
-
-			It("formats the command", func() {
-				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1) ON CONFLICT (key) DO UPDATE SET key = EXCLUDED.key"))
-				Expect(stmt.Args).To(ConsistOf("value"))
-			})
-		})
-
 		Context("when the command is wrapped in ex.Json", func() {
 			BeforeEach(func() {
 				cmd = ex.Insert("resources",
@@ -232,6 +215,37 @@ var _ = Describe("Formatter", func() {
 			It("formats the command as json", func() {
 				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1)"))
 				Expect(stmt.Args).To(ConsistOf("{\"key\":\"value\"}"))
+			})
+		})
+
+		Context("when the command has conflict constraint", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": "value"},
+					ex.OnConflict{
+						Constraint:    "key",
+						UpdateColumns: []string{"key"},
+					},
+				)
+			})
+
+			It("formats the command", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1) ON CONFLICT (key) DO UPDATE SET key = EXCLUDED.key"))
+				Expect(stmt.Args).To(ConsistOf("value"))
+			})
+		})
+
+		Context("when the command has conflict update", func() {
+			BeforeEach(func() {
+				cmd = ex.Insert("resources",
+					ex.Values{"key": "value"},
+					ex.OnConflictUpdate{"key"},
+				)
+			})
+
+			It("formats the command defaulting to conflict on id", func() {
+				Expect(stmt.Stmt).To(Equal("INSERT INTO resources (key) VALUES ($1) ON CONFLICT (id) DO UPDATE SET key = EXCLUDED.key"))
+				Expect(stmt.Args).To(ConsistOf("value"))
 			})
 		})
 

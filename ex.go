@@ -51,14 +51,14 @@ type opt interface {
 
 func cmd(action, resource string, opts ...opt) Command {
 	cmd := Command{
-		Action:     action,
-		Resource:   resource,
-		Where:      Where{},
-		Values:     Values{},
-		Order:      Order{},
-		Limit:      Limit{},
-		Offset:     Offset{},
-		OnConflict: OnConflict{},
+		Action:           action,
+		Resource:         resource,
+		Where:            Where{},
+		Values:           Values{},
+		Order:            Order{},
+		Limit:            Limit{},
+		Offset:           Offset{},
+		OnConflictConfig: OnConflictConfig{},
 	}
 
 	for _, opt := range opts {
@@ -102,42 +102,42 @@ func (o Offset) opt(cmd *Command) {
 	cmd.Offset = o
 }
 
-type OnConflict struct {
-	Constraint OnConstraintConflict
+type OnConflictConfig struct {
+	Constraint OnConflict
 	Update     OnConflictUpdate
 	Ignore     OnConflictIgnore
 	Error      OnConflictError
 }
 
-func (o OnConflict) opt(cmd *Command) {
-	cmd.OnConflict = o
+func (o OnConflictConfig) opt(cmd *Command) {
+	cmd.OnConflictConfig = o
 }
 
 type OnConflictUpdate []string
 
 func (o OnConflictUpdate) opt(cmd *Command) {
-	cmd.OnConflict.Update = o
+	cmd.OnConflictConfig.Update = o
 }
 
-type OnConstraintConflict struct {
-	Constraint    string
-	UpdateColumns []string
+type OnConflict struct {
+	Constraint    string   `json:"constraint"`
+	UpdateColumns []string `json:"update_columns"`
 }
 
-func (o OnConstraintConflict) opt(cmd *Command) {
-	cmd.OnConflict.Constraint = o
+func (o OnConflict) opt(cmd *Command) {
+	cmd.OnConflictConfig.Constraint = o
 }
 
 type OnConflictIgnore string
 
 func (o OnConflictIgnore) opt(cmd *Command) {
-	cmd.OnConflict.Ignore = o
+	cmd.OnConflictConfig.Ignore = o
 }
 
 type OnConflictError string
 
 func (o OnConflictError) opt(cmd *Command) {
-	cmd.OnConflict.Error = o
+	cmd.OnConflictConfig.Error = o
 }
 
 type Eq struct {
