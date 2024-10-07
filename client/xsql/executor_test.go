@@ -393,16 +393,6 @@ var _ = Describe("Executor", func() {
 						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
 					})
 
-					Context("when retrieving the id fails", func() {
-						BeforeEach(func() {
-							mockResult.EXPECT().LastInsertId().Return(int64(0), errors.New("nope"))
-						})
-
-						It("errors", func() {
-							Expect(err).To(HaveOccurred())
-						})
-					})
-
 					Context("when the data result is nil", func() {
 						BeforeEach(func() {
 							data = nil
@@ -432,6 +422,18 @@ var _ = Describe("Executor", func() {
 					Context("when the data result is NOT nil", func() {
 						BeforeEach(func() {
 							data = map[string]interface{}{}
+						})
+
+						Context("when retrieving the id fails", func() {
+							BeforeEach(func() {
+								mockResult.EXPECT().LastInsertId().Return(int64(0), errors.New("nope"))
+								mockScanner.EXPECT().Scan(gomock.Any(), data).Return(nil)
+								mockTx.EXPECT().Commit().Return(nil)
+							})
+
+							It("succeeds after scanning emptyRows", func() {
+								Expect(err).NotTo(HaveOccurred())
+							})
 						})
 
 						Context("when retrieving the id succeeds", func() {
