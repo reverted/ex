@@ -1,6 +1,12 @@
 name: release
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      tag_version:
+        description: 'Tag version to release'
+        required: false
+        default: ''
 
 jobs:
   release:
@@ -18,9 +24,13 @@ jobs:
 
     - name: Generate Tag
       run: |
-        NEW_TAG=$(git tag --list --sort=-version:refname | head -n1 | awk -F. '{ printf "%s.%s.%s", $1, $2, $3+1 }')
-        if [ -z "$NEW_TAG" ]; then
-          NEW_TAG=v0.0.1
+        if [ "${{ github.event.inputs.tag_version }}" != "" ]; then
+          NEW_TAG=${{ github.event.inputs.tag_version }}
+        else
+          NEW_TAG=$(git tag --list --sort=-version:refname | head -n1 | awk -F. '{ printf "%s.%s.%s", $1, $2, $3+1 }')
+          if [ -z "$NEW_TAG" ]; then
+            NEW_TAG=v0.0.1
+          fi
         fi
 
         echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
