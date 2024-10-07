@@ -293,20 +293,20 @@ var _ = Describe("Formatter", func() {
 	Describe("Modifiers", func() {
 		BeforeEach(func() {
 			req = ex.Query("resources", ex.Where{
-				"key-a": ex.Eq{Arg: "value"},
-				"key-b": ex.NotEq{Arg: "value"},
-				"key-c": ex.Gt{Arg: "value"},
-				"key-d": ex.GtEq{Arg: "value"},
-				"key-e": ex.Lt{Arg: "value"},
-				"key-f": ex.LtEq{Arg: "value"},
-				"key-g": ex.Is{Arg: "value"},
-				"key-i": ex.IsNot{Arg: "value"},
-				"key-j": ex.Like{Arg: "value"},
-				"key-k": ex.NotLike{Arg: "value"},
-				"key-l": ex.In{"value1", "value2"},
-				"key-m": ex.NotIn{"value1", "value2"},
-				"key-n": ex.Btwn{Start: "value1", End: "value2"},
-				"key-o": ex.NotBtwn{Start: "value1", End: "value2"},
+				"key-a": ex.Eq("value"),
+				"key-b": ex.NotEq("value"),
+				"key-c": ex.Gt("value"),
+				"key-d": ex.GtEq("value"),
+				"key-e": ex.Lt("value"),
+				"key-f": ex.LtEq("value"),
+				"key-g": ex.Is("value"),
+				"key-i": ex.IsNot("value"),
+				"key-j": ex.Like("value"),
+				"key-k": ex.NotLike("value"),
+				"key-l": ex.In("value1", "value2"),
+				"key-m": ex.NotIn("value1", "value2"),
+				"key-n": ex.Btwn("value1", "value2"),
+				"key-o": ex.NotBtwn("value1", "value2"),
 			})
 		})
 

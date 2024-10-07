@@ -136,10 +136,10 @@ func (f *formatter) FormatUpdate(cmd ex.Command) ex.Statement {
 
 func (f *formatter) FormatValueArg(index int, k string, v interface{}) (string, []interface{}) {
 	switch value := v.(type) {
-	case ex.Literal:
+	case ex.LiteralArg:
 		return fmt.Sprintf("%s = %s", k, value.Arg), nil
 
-	case ex.Json:
+	case ex.JsonArg:
 		data, _ := json.Marshal(value.Arg)
 		return fmt.Sprintf("%s = $%d", k, index), []interface{}{string(data)}
 
@@ -256,35 +256,35 @@ func (f *formatter) FormatConflict(conflict ex.OnConflictConfig) string {
 func (f *formatter) FormatWhereArg(index int, k string, v interface{}) (string, []interface{}) {
 	switch value := v.(type) {
 
-	case ex.Literal:
+	case ex.LiteralArg:
 		return fmt.Sprintf("%s = %s", k, value.Arg), nil
-	case ex.Eq:
-		return fmt.Sprintf("%s = $%d", k, index), []interface{}{value.Arg}
-	case ex.NotEq:
+	case ex.EqArg:
+		return fmt.Sprintf("%s = $%d", k, index), []interface{}{value}
+	case ex.NotEqArg:
 		return fmt.Sprintf("%s != $%d", k, index), []interface{}{value.Arg}
-	case ex.Gt:
+	case ex.GtArg:
 		return fmt.Sprintf("%s > $%d", k, index), []interface{}{value.Arg}
-	case ex.GtEq:
+	case ex.GtEqArg:
 		return fmt.Sprintf("%s >= $%d", k, index), []interface{}{value.Arg}
-	case ex.Lt:
+	case ex.LtArg:
 		return fmt.Sprintf("%s < $%d", k, index), []interface{}{value.Arg}
-	case ex.LtEq:
+	case ex.LtEqArg:
 		return fmt.Sprintf("%s <= $%d", k, index), []interface{}{value.Arg}
-	case ex.Like:
+	case ex.LikeArg:
 		return fmt.Sprintf("%s LIKE $%d", k, index), []interface{}{"%" + value.Arg + "%"}
-	case ex.NotLike:
+	case ex.NotLikeArg:
 		return fmt.Sprintf("%s NOT LIKE $%d", k, index), []interface{}{"%" + value.Arg + "%"}
-	case ex.Is:
+	case ex.IsArg:
 		return fmt.Sprintf("%s IS %v", k, f.formatIs(value.Arg)), nil
-	case ex.IsNot:
+	case ex.IsNotArg:
 		return fmt.Sprintf("%s IS NOT %v", k, f.formatIs(value.Arg)), nil
-	case ex.In:
+	case ex.InArg:
 		return fmt.Sprintf("%s IN (%s)", k, f.formatIn(index, value)), value
-	case ex.NotIn:
+	case ex.NotInArg:
 		return fmt.Sprintf("%s NOT IN (%s)", k, f.formatIn(index, value)), value
-	case ex.Btwn:
+	case ex.BtwnArg:
 		return fmt.Sprintf("%s BETWEEN $%d AND $%d", k, index, index+1), []interface{}{value.Start, value.End}
-	case ex.NotBtwn:
+	case ex.NotBtwnArg:
 		return fmt.Sprintf("%s NOT BETWEEN $%d AND $%d", k, index, index+1), []interface{}{value.Start, value.End}
 	default:
 		return fmt.Sprintf("%s = $%d", k, index), []interface{}{value}

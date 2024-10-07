@@ -156,7 +156,7 @@ var _ = Describe("Formatter", func() {
 		Context("when the command is wrapped in ex.Json", func() {
 			BeforeEach(func() {
 				cmd = ex.Insert("resources",
-					ex.Values{"key": ex.Json{Arg: []string{"value1", "value2"}}},
+					ex.Values{"key": ex.Json([]string{"value1", "value2"})},
 				)
 			})
 

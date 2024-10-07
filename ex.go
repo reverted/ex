@@ -146,64 +146,128 @@ func OnConflictError(err string) opt {
 	return OnConflictConfig{Error: err}
 }
 
-type Eq struct {
+func Eq(arg interface{}) EqArg {
+	return EqArg{arg}
+}
+
+type EqArg struct {
 	Arg interface{}
 }
 
-type NotEq struct {
+func NotEq(arg interface{}) NotEqArg {
+	return NotEqArg{arg}
+}
+
+type NotEqArg struct {
 	Arg interface{}
 }
 
-type Gt struct {
+func Gt(arg interface{}) GtArg {
+	return GtArg{arg}
+}
+
+type GtArg struct {
 	Arg interface{}
 }
 
-type GtEq struct {
+func GtEq(arg interface{}) GtEqArg {
+	return GtEqArg{arg}
+}
+
+type GtEqArg struct {
 	Arg interface{}
 }
 
-type Lt struct {
+func Lt(arg interface{}) LtArg {
+	return LtArg{arg}
+}
+
+type LtArg struct {
 	Arg interface{}
 }
 
-type LtEq struct {
+func LtEq(arg interface{}) LtEqArg {
+	return LtEqArg{arg}
+}
+
+type LtEqArg struct {
 	Arg interface{}
 }
 
-type Like struct {
+func Like(arg string) LikeArg {
+	return LikeArg{arg}
+}
+
+type LikeArg struct {
 	Arg string
 }
 
-type NotLike struct {
+func NotLike(arg string) NotLikeArg {
+	return NotLikeArg{arg}
+}
+
+type NotLikeArg struct {
 	Arg string
 }
 
-type Is struct {
+func Is(arg interface{}) IsArg {
+	return IsArg{arg}
+}
+
+type IsArg struct {
 	Arg interface{}
 }
 
-type IsNot struct {
+func IsNot(arg interface{}) IsNotArg {
+	return IsNotArg{arg}
+}
+
+type IsNotArg struct {
 	Arg interface{}
 }
 
-type In []interface{}
+func In(args ...interface{}) InArg {
+	return InArg(args)
+}
 
-type NotIn []interface{}
+type InArg []interface{}
 
-type Btwn struct {
+func NotIn(args ...interface{}) NotInArg {
+	return NotInArg(args)
+}
+
+type NotInArg []interface{}
+
+func Btwn(start, end interface{}) BtwnArg {
+	return BtwnArg{start, end}
+}
+
+type BtwnArg struct {
 	Start, End interface{}
 }
 
-type NotBtwn struct {
+func NotBtwn(start, end interface{}) NotBtwnArg {
+	return NotBtwnArg{start, end}
+}
+
+type NotBtwnArg struct {
 	Start, End interface{}
 }
 
-type Literal struct {
+func Literal(arg string) LiteralArg {
+	return LiteralArg{arg}
+}
+
+type LiteralArg struct {
 	Arg string
 }
 
-type Json struct {
+func Json(arg interface{}) JsonArg {
+	return JsonArg{arg}
+}
+
+type JsonArg struct {
 	Arg interface{}
 }
 
-var Null = Literal{"NULL"}
+var Null = Literal("NULL")
