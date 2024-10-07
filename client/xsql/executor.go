@@ -256,7 +256,7 @@ func (e *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data inter
 	if data != nil {
 		id, err := res.LastInsertId()
 		if err != nil {
-			return err
+			return e.Scanner.Scan(emptyRows{}, data)
 		}
 
 		if id == 0 {
