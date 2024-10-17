@@ -381,6 +381,12 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 							return err
 						}
 						sliceValue.Index(j).Set(elemValue)
+
+					} else if reflect.TypeOf(subSlice[j]).AssignableTo(elemType) {
+						sliceValue.Index(j).Set(reflect.ValueOf(subSlice[j]))
+
+					} else {
+						return fmt.Errorf("cannot handle slice of %v", elemType)
 					}
 				}
 				vf.Set(sliceValue)
