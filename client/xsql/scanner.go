@@ -351,10 +351,39 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 		if ts.Kind() == reflect.Map {
 			subMap, ok := item.(map[string]interface{})
 			if ok {
-
 				if err := s.assignFields(tf.Type, vf, subMap); err != nil {
 					return err
 				}
+				continue
+			}
+		}
+
+		if ts.Kind() == reflect.Slice {
+			subSlice, ok := item.([]interface{})
+			if ok {
+				if tf.Type == reflect.TypeOf(json.RawMessage{}) {
+					data, err := json.Marshal(subSlice)
+					if err != nil {
+						return fmt.Errorf("failed to marshal slice to json: %w", err)
+					}
+					vf.SetBytes(data)
+					continue
+				}
+
+				sliceValue := reflect.MakeSlice(tf.Type, len(subSlice), len(subSlice))
+
+				for j := 0; j < len(subSlice); j++ {
+					elemValue := reflect.New(tf.Type.Elem()).Elem()
+					elemType := tf.Type.Elem()
+
+					if subMap, ok := subSlice[j].(map[string]interface{}); ok {
+						if err := s.assignFields(elemType, elemValue, subMap); err != nil {
+							return err
+						}
+						sliceValue.Index(j).Set(elemValue)
+					}
+				}
+				vf.Set(sliceValue)
 				continue
 			}
 		}
