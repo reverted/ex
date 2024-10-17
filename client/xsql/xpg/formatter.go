@@ -42,7 +42,7 @@ func (f *formatter) FormatQuery(cmd ex.Command) ex.Statement {
 	var stmt string
 	var args []interface{}
 
-	if clause := f.FormatColumns(cmd.GroupConfig); clause != "" {
+	if clause := f.FormatColumns(cmd.ColumnConfig); clause != "" {
 		stmt = "SELECT " + clause + " FROM " + cmd.Resource
 	} else {
 		stmt = "SELECT * FROM " + cmd.Resource
