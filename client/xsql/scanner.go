@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -330,7 +331,8 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 			vf = vf.Elem()
 		}
 
-		tag := tf.Tag.Get("json")
+		jsonTag := tf.Tag.Get("json")
+		tag := strings.Split(jsonTag, ",")[0]
 
 		item, ok := scanned[tag]
 		if !ok {
