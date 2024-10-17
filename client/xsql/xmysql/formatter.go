@@ -41,11 +41,19 @@ func (f *formatter) FormatQuery(cmd ex.Command) ex.Statement {
 	var stmt string
 	var args []interface{}
 
-	stmt = "SELECT * FROM " + cmd.Resource
+	if clause := f.FormatColumns(cmd.GroupConfig); clause != "" {
+		stmt = "SELECT " + clause + " FROM " + cmd.Resource
+	} else {
+		stmt = "SELECT * FROM " + cmd.Resource
+	}
 
 	if clause, whereArgs := f.FormatWhere(cmd.Where); clause != "" {
 		stmt += " WHERE " + clause
 		args = append(args, whereArgs...)
+	}
+
+	if clause := f.FormatGroupBy(cmd.GroupConfig); clause != "" {
+		stmt += " GROUP BY " + clause
 	}
 
 	if clause := f.FormatOrder(cmd.OrderConfig); clause != "" {
@@ -175,6 +183,16 @@ func (f *formatter) FormatValues(values ex.Values) (string, []interface{}) {
 	}
 
 	return strings.Join(columns, ","), args
+}
+
+func (f *formatter) FormatColumns(columns []string) string {
+
+	return strings.Join(columns, ",")
+}
+
+func (f *formatter) FormatGroupBy(groupBy []string) string {
+
+	return strings.Join(groupBy, ",")
 }
 
 func (f *formatter) FormatOrder(order []string) string {

@@ -84,6 +84,16 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Command, error) {
 		return ex.Command{}, err
 	}
 
+	columns, err := p.ParseColumns(r)
+	if err != nil {
+		return ex.Command{}, err
+	}
+
+	groupBy, err := p.ParseGroupBy(r)
+	if err != nil {
+		return ex.Command{}, err
+	}
+
 	order, err := p.ParseOrder(r)
 	if err != nil {
 		return ex.Command{}, err
@@ -106,7 +116,7 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Command, error) {
 
 	switch r.Method {
 	case "GET":
-		return ex.Query(resource, where, ex.Order(order...), ex.Limit(limit), ex.Offset(offset)), nil
+		return ex.Query(resource, where, ex.Columns(columns...), ex.GroupBy(groupBy...), ex.Order(order...), ex.Limit(limit), ex.Offset(offset)), nil
 
 	case "DELETE":
 		return ex.Delete(resource, where, ex.Order(order...), ex.Limit(limit)), nil
@@ -136,6 +146,22 @@ func (p *parser) ParseValues(r *http.Request) (ex.Values, error) {
 	}
 
 	return values, nil
+}
+
+func (p *parser) ParseColumns(r *http.Request) ([]string, error) {
+	if param := r.Header.Get("X-Columns"); len(param) > 0 {
+		return strings.Split(param, ","), nil
+	} else {
+		return nil, nil
+	}
+}
+
+func (p *parser) ParseGroupBy(r *http.Request) ([]string, error) {
+	if param := r.Header.Get("X-Group-By"); len(param) > 0 {
+		return strings.Split(param, ","), nil
+	} else {
+		return nil, nil
+	}
 }
 
 func (p *parser) ParseOrder(r *http.Request) ([]string, error) {

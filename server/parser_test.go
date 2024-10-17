@@ -62,6 +62,26 @@ var _ = Describe("Parser", func() {
 			})
 		})
 
+		Context("when the request has columns", func() {
+			BeforeEach(func() {
+				req.Header.Add("X-Columns", "name")
+			})
+
+			It("parses the request", func() {
+				Expect(res).To(Equal(ex.Query("resources", ex.Columns("name"))))
+			})
+		})
+
+		Context("when the request has order", func() {
+			BeforeEach(func() {
+				req.Header.Add("X-Group-By", "name")
+			})
+
+			It("parses the request", func() {
+				Expect(res).To(Equal(ex.Query("resources", ex.GroupBy("name"))))
+			})
+		})
+
 		Context("when the request has order", func() {
 			BeforeEach(func() {
 				req.Header.Add("X-Order-By", "name")

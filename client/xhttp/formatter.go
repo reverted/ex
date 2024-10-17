@@ -128,6 +128,14 @@ func (f *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 func (f *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
 	res := map[string]string{}
 
+	if len(cmd.ColumnConfig) > 0 {
+		res["X-Columns"] = strings.Join(cmd.ColumnConfig, ",")
+	}
+
+	if len(cmd.GroupConfig) > 0 {
+		res["X-Group-By"] = strings.Join(cmd.GroupConfig, ",")
+	}
+
 	if len(cmd.OrderConfig) > 0 {
 		res["X-Order-By"] = strings.Join(cmd.OrderConfig, ",")
 	}

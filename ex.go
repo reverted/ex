@@ -80,6 +80,26 @@ func (v Values) opt(cmd *Command) {
 	cmd.Values = v
 }
 
+func Columns(columns ...string) opt {
+	return ColumnConfig(columns)
+}
+
+type ColumnConfig []string
+
+func (c ColumnConfig) opt(cmd *Command) {
+	cmd.ColumnConfig = c
+}
+
+func GroupBy(grouping ...string) opt {
+	return GroupConfig(grouping)
+}
+
+type GroupConfig []string
+
+func (c GroupConfig) opt(cmd *Command) {
+	cmd.GroupConfig = c
+}
+
 func Order(ordering ...string) opt {
 	return OrderConfig(ordering)
 }

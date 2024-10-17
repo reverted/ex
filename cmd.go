@@ -37,6 +37,8 @@ type Command struct {
 	Resource         string
 	Where            Where
 	Values           Values
+	ColumnConfig     ColumnConfig
+	GroupConfig      GroupConfig
 	OrderConfig      OrderConfig
 	LimitConfig      LimitConfig
 	OffsetConfig     OffsetConfig
@@ -52,6 +54,8 @@ func (c Command) MarshalJSON() ([]byte, error) {
 		"resource": c.Resource,
 		"where":    format(c.Where),
 		"values":   c.Values,
+		"columns":  c.ColumnConfig,
+		"group":    c.GroupConfig,
 		"order":    c.OrderConfig,
 		"limit":    c.LimitConfig,
 		"offset":   c.OffsetConfig,
@@ -93,6 +97,16 @@ func (c *Command) UnmarshalJSON(b []byte) error {
 	values, ok := contents["values"].(map[string]interface{})
 	if ok {
 		opts = append(opts, Values(values))
+	}
+
+	columns, ok := contents["columns"].([]string)
+	if ok {
+		opts = append(opts, Columns(columns...))
+	}
+
+	group, ok := contents["group"].([]string)
+	if ok {
+		opts = append(opts, GroupBy(group...))
 	}
 
 	order, ok := contents["order"].([]string)

@@ -76,6 +76,30 @@ var _ = Describe("Formatter", func() {
 			})
 		})
 
+		Context("when the request has columns", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.Columns("key"))
+			})
+
+			It("formats the request", func() {
+				Expect(res.Method).To(Equal("GET"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Columns")).To(Equal("key"))
+			})
+		})
+
+		Context("when the request has group by", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.GroupBy("key"))
+			})
+
+			It("formats the request", func() {
+				Expect(res.Method).To(Equal("GET"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Group-By")).To(Equal("key"))
+			})
+		})
+
 		Context("when the request has order", func() {
 			BeforeEach(func() {
 				req = ex.Query("resources", ex.Order("key"))

@@ -64,6 +64,26 @@ var _ = Describe("Formatter", func() {
 			})
 		})
 
+		Context("when the command has columns", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.Columns("key"))
+			})
+
+			It("formats the command", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT key FROM resources"))
+			})
+		})
+
+		Context("when the command has group by", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.GroupBy("key"))
+			})
+
+			It("formats the command", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM resources GROUP BY key"))
+			})
+		})
+
 		Context("when the command has order", func() {
 			BeforeEach(func() {
 				cmd = ex.Query("resources", ex.Order("key"))
