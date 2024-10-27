@@ -34,7 +34,7 @@ func (p *parser) Parse(r *http.Request) (ex.Request, error) {
 	}
 }
 
-func (p *parser) ParseStatement(r *http.Request) (ex.Statement, error) {
+func (p *parser) ParseStatement(r *http.Request) (ex.Request, error) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -49,7 +49,7 @@ func (p *parser) ParseStatement(r *http.Request) (ex.Statement, error) {
 	return stmt, nil
 }
 
-func (p *parser) ParseBatch(r *http.Request) (ex.Batch, error) {
+func (p *parser) ParseBatch(r *http.Request) (ex.Request, error) {
 
 	var batch ex.Batch
 
@@ -70,7 +70,7 @@ func (p *parser) ParseBatch(r *http.Request) (ex.Batch, error) {
 	return batch, nil
 }
 
-func (p *parser) ParseCommand(r *http.Request) (ex.Command, error) {
+func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 
 	resource := p.ParseResource(r)
 
@@ -122,30 +122,44 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Command, error) {
 		return ex.Delete(resource, where, ex.Order(order...), ex.Limit(limit)), nil
 
 	case "POST":
-		return ex.Insert(resource, values, conflict), nil
+		if len(values) == 1 {
+			return ex.Insert(resource, values[0], conflict), nil
+		}
+		var cmds []ex.Request
+		for _, v := range values {
+			cmds = append(cmds, ex.Insert(resource, v, conflict))
+		}
+		return ex.Bulk(cmds...), nil
 
 	case "PUT":
-		return ex.Update(resource, values, where, ex.Order(order...), ex.Limit(limit)), nil
+		if len(values) == 1 {
+			return ex.Update(resource, values[0], where, ex.Order(order...), ex.Limit(limit)), nil
+		}
 
-	default:
-		return ex.Command{}, errors.New("Unsupported method '" + r.Method + "'")
 	}
+	return ex.Command{}, errors.New("Unsupported method '" + r.Method + "'")
 }
 
-func (p *parser) ParseValues(r *http.Request) (ex.Values, error) {
+func (p *parser) ParseValues(r *http.Request) ([]ex.Values, error) {
 	defer r.Body.Close()
 
-	var values ex.Values
-	err := json.NewDecoder(r.Body).Decode(&values)
-	if err != nil {
-		if err == io.EOF {
-			return ex.Values{}, nil
-		} else {
-			return ex.Values{}, err
-		}
+	var item ex.Values
+	err := json.NewDecoder(r.Body).Decode(&item)
+	if err == nil {
+		return []ex.Values{item}, nil
 	}
 
-	return values, nil
+	var items []ex.Values
+	err = json.NewDecoder(r.Body).Decode(&items)
+	if err == nil {
+		return items, nil
+	}
+
+	if err == io.EOF {
+		return []ex.Values{}, nil
+	} else {
+		return []ex.Values{}, err
+	}
 }
 
 func (p *parser) ParseColumns(r *http.Request) ([]string, error) {
