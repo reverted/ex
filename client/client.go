@@ -38,13 +38,22 @@ func WithTracer(tracer Tracer) opt {
 	}
 }
 
+func WithBackoff(backoff ...int) opt {
+	return func(c *client) {
+		if len(backoff) > 0 {
+			c.Backoff = backoff
+		}
+	}
+}
+
 type opt func(*client)
 
 func New(logger Logger, opts ...opt) *client {
 
 	client := &client{
-		Logger: logger,
-		Tracer: noopTracer{},
+		Logger:  logger,
+		Tracer:  noopTracer{},
+		Backoff: []int{0, 2, 5, 10, 30},
 	}
 
 	for _, opt := range opts {
@@ -58,6 +67,8 @@ type client struct {
 	Logger
 	Executor
 	Tracer
+
+	Backoff []int
 }
 
 func (c *client) Exec(req ex.Request, res ...interface{}) error {
@@ -81,9 +92,7 @@ func (c *client) execute(ctx context.Context, req ex.Request, data interface{}) 
 	var err error
 	var retry bool
 
-	attempts := []int{0, 1, 2, 5, 10, 30, 60, 120, 300, 600}
-
-	for i, interval := range attempts {
+	for i, interval := range c.Backoff {
 		time.Sleep(time.Duration(interval) * time.Second)
 
 		c.Logger.Infof(">>> %+v", req)
@@ -95,8 +104,8 @@ func (c *client) execute(ctx context.Context, req ex.Request, data interface{}) 
 			break
 		}
 
-		if next := i + 1; next < len(attempts) {
-			c.Logger.Infof(">>> %+v [failed] retry in %ds", req, attempts[next])
+		if next := i + 1; next < len(c.Backoff) {
+			c.Logger.Infof(">>> %+v [failed] retry in %ds", req, c.Backoff[next])
 		} else {
 			c.Logger.Errorf(">>> %+v [failed] %v", req, err)
 		}
