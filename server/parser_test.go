@@ -184,7 +184,13 @@ var _ = Describe("Parser", func() {
 			req.Method = "POST"
 		})
 
-		Context("when the request has values", func() {
+		Context("when the request has no body", func() {
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the request has body", func() {
 			BeforeEach(func() {
 				req.Body = io.NopCloser(bytes.NewBufferString(`{"key": "value"}`))
 			})
@@ -192,45 +198,45 @@ var _ = Describe("Parser", func() {
 			It("parses the request", func() {
 				Expect(res).To(Equal(ex.Insert("resources", ex.Values{"key": "value"})))
 			})
-		})
 
-		Context("when the request has a conflict constraint", func() {
-			BeforeEach(func() {
-				req.Header.Add("X-On-Conflict-Constraint", "key1,key2")
+			Context("when the request has a conflict constraint", func() {
+				BeforeEach(func() {
+					req.Header.Add("X-On-Conflict-Constraint", "key1,key2")
+				})
+
+				It("parses the request", func() {
+					Expect(res).To(Equal(ex.Insert("resources", ex.Values{"key": "value"}, ex.OnConflictConstraint("key1", "key2"))))
+				})
 			})
 
-			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictConstraint("key1", "key2"))))
-			})
-		})
+			Context("when the request has a conflict update", func() {
+				BeforeEach(func() {
+					req.Header.Add("X-On-Conflict-Update", "key1,key2")
+				})
 
-		Context("when the request has a conflict update", func() {
-			BeforeEach(func() {
-				req.Header.Add("X-On-Conflict-Update", "key1,key2")
-			})
-
-			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictUpdate("key1", "key2"))))
-			})
-		})
-
-		Context("when the request has a conflict ignore", func() {
-			BeforeEach(func() {
-				req.Header.Add("X-On-Conflict-Ignore", "true")
+				It("parses the request", func() {
+					Expect(res).To(Equal(ex.Insert("resources", ex.Values{"key": "value"}, ex.OnConflictUpdate("key1", "key2"))))
+				})
 			})
 
-			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictIgnore("true"))))
-			})
-		})
+			Context("when the request has a conflict ignore", func() {
+				BeforeEach(func() {
+					req.Header.Add("X-On-Conflict-Ignore", "true")
+				})
 
-		Context("when the request has a conflict error", func() {
-			BeforeEach(func() {
-				req.Header.Add("X-On-Conflict-Error", "true")
+				It("parses the request", func() {
+					Expect(res).To(Equal(ex.Insert("resources", ex.Values{"key": "value"}, ex.OnConflictIgnore("true"))))
+				})
 			})
 
-			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Insert("resources", ex.OnConflictError("true"))))
+			Context("when the request has a conflict error", func() {
+				BeforeEach(func() {
+					req.Header.Add("X-On-Conflict-Error", "true")
+				})
+
+				It("parses the request", func() {
+					Expect(res).To(Equal(ex.Insert("resources", ex.Values{"key": "value"}, ex.OnConflictError("true"))))
+				})
 			})
 		})
 	})
@@ -240,55 +246,59 @@ var _ = Describe("Parser", func() {
 			req.Method = "PUT"
 		})
 
+		Context("when the request has no body", func() {
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
 		Context("when the request has values", func() {
 			BeforeEach(func() {
 				req.Body = io.NopCloser(bytes.NewBufferString(`{"key": "value"}`))
 			})
 
 			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Update("resources", ex.Values{
-					"key": "value",
-				})))
-			})
-		})
-
-		Context("when the request has where args", func() {
-			BeforeEach(func() {
-				req.URL.RawQuery = "key=value"
+				Expect(res).To(Equal(ex.Update("resources", ex.Values{"key": "value"})))
 			})
 
-			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Update("resources", ex.Where{"key": "value"})))
-			})
-		})
+			Context("when the request has where args", func() {
+				BeforeEach(func() {
+					req.URL.RawQuery = "key=value"
+				})
 
-		Context("when the request has order", func() {
-			BeforeEach(func() {
-				req.Header.Add("X-Order-By", "name")
-			})
-
-			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Update("resources", ex.Order("name"))))
-			})
-		})
-
-		Context("when the request has limit", func() {
-			BeforeEach(func() {
-				req.Header.Add("X-Limit", "1")
+				It("parses the request", func() {
+					Expect(res).To(Equal(ex.Update("resources", ex.Values{"key": "value"}, ex.Where{"key": "value"})))
+				})
 			})
 
-			It("parses the request", func() {
-				Expect(res).To(Equal(ex.Update("resources", ex.Limit(1))))
-			})
-		})
+			Context("when the request has order", func() {
+				BeforeEach(func() {
+					req.Header.Add("X-Order-By", "name")
+				})
 
-		Context("when the request has an invalid limit", func() {
-			BeforeEach(func() {
-				req.Header.Add("X-Limit", "value")
+				It("parses the request", func() {
+					Expect(res).To(Equal(ex.Update("resources", ex.Values{"key": "value"}, ex.Order("name"))))
+				})
 			})
 
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
+			Context("when the request has limit", func() {
+				BeforeEach(func() {
+					req.Header.Add("X-Limit", "1")
+				})
+
+				It("parses the request", func() {
+					Expect(res).To(Equal(ex.Update("resources", ex.Values{"key": "value"}, ex.Limit(1))))
+				})
+			})
+
+			Context("when the request has an invalid limit", func() {
+				BeforeEach(func() {
+					req.Header.Add("X-Limit", "value")
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
 			})
 		})
 	})

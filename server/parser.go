@@ -123,6 +123,9 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 		return ex.Delete(resource, where, ex.Order(order...), ex.Limit(limit)), nil
 
 	case "POST":
+		if len(values) == 0 {
+			return ex.Command{}, errors.New("body does not contain a valid object or array")
+		}
 		if len(values) == 1 {
 			return ex.Insert(resource, values[0], conflict), nil
 		}
@@ -133,12 +136,16 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 		return ex.Bulk(cmds...), nil
 
 	case "PUT":
+		if len(values) == 0 {
+			return ex.Command{}, errors.New("body does not contain a valid object or array")
+		}
 		if len(values) == 1 {
 			return ex.Update(resource, values[0], where, ex.Order(order...), ex.Limit(limit)), nil
 		}
+		return ex.Command{}, errors.New("arrays not supported in PUT body")
 
 	}
-	return ex.Command{}, errors.New("Unsupported method '" + r.Method + "'")
+	return ex.Command{}, errors.New("unsupported method '" + r.Method + "'")
 }
 
 func (p *parser) ParseValues(r *http.Request) ([]ex.Values, error) {
