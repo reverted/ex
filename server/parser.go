@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -143,14 +144,19 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 func (p *parser) ParseValues(r *http.Request) ([]ex.Values, error) {
 	defer r.Body.Close()
 
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	var items []ex.Values
-	err := json.NewDecoder(r.Body).Decode(&items)
+	err = json.NewDecoder(bytes.NewReader(body)).Decode(&items)
 	if err == nil {
 		return items, nil
 	}
 
 	var item ex.Values
-	err = json.NewDecoder(r.Body).Decode(&item)
+	err = json.NewDecoder(bytes.NewReader(body)).Decode(&item)
 	if err == nil {
 		return []ex.Values{item}, nil
 	}
