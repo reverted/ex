@@ -244,7 +244,7 @@ func (p *parser) ParseWhere(r *http.Request) (ex.Where, error) {
 	where := ex.Where{}
 
 	for k, v := range r.URL.Query() {
-		key, value, err := ex.Parse(k, v[0])
+		key, value, err := ex.ParseWhere(k, v[0])
 		if err != nil {
 			return nil, err
 		}

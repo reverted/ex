@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/reverted/ex"
 )
@@ -149,6 +150,9 @@ func (f *formatter) FormatValueArg(k string, v interface{}) (string, []interface
 	case ex.JsonArg:
 		data, _ := json.Marshal(value.Arg)
 		return fmt.Sprintf("%s = ?", k), []interface{}{string(data)}
+
+	case time.Time:
+		return fmt.Sprintf("%s = ?", k), []interface{}{value.Format(ex.SqlTimeFormat)}
 
 	default:
 		switch reflect.ValueOf(value).Kind() {

@@ -5,6 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
+)
+
+const (
+	SqlTimeFormat = "2006-01-02T15:04:05.99999999"
 )
 
 type Request interface {
@@ -52,8 +57,8 @@ func (c Command) MarshalJSON() ([]byte, error) {
 	fields := map[string]interface{}{
 		"action":   c.Action,
 		"resource": c.Resource,
-		"where":    format(c.Where),
-		"values":   c.Values,
+		"where":    formatWhere(c.Where),
+		"values":   formatValues(c.Values),
 		"columns":  c.ColumnConfig,
 		"group":    c.GroupConfig,
 		"order":    c.OrderConfig,
@@ -81,6 +86,7 @@ func (c Command) MarshalJSON() ([]byte, error) {
 }
 
 func (c *Command) UnmarshalJSON(b []byte) error {
+
 	var contents map[string]interface{}
 	err := json.Unmarshal(b, &contents)
 	if err != nil {
@@ -91,7 +97,7 @@ func (c *Command) UnmarshalJSON(b []byte) error {
 
 	where, ok := contents["where"].(map[string]interface{})
 	if ok {
-		opts = append(opts, Where(parse(where)))
+		opts = append(opts, Where(parseWhere(where)))
 	}
 
 	values, ok := contents["values"].(map[string]interface{})
@@ -144,9 +150,12 @@ func (c *Command) UnmarshalJSON(b []byte) error {
 		opts = append(opts, OnConflictError(conflictError))
 	}
 
+	action, _ := contents["action"].(string)
+	resource, _ := contents["resource"].(string)
+
 	command := cmd(
-		contents["action"].(string),
-		contents["resource"].(string),
+		action,
+		resource,
 		opts...,
 	)
 
@@ -154,10 +163,10 @@ func (c *Command) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func format(args map[string]interface{}) map[string]interface{} {
+func formatWhere(args map[string]interface{}) map[string]interface{} {
 	fields := map[string]interface{}{}
 	for k, v := range args {
-		key, value, err := Format(k, v)
+		key, value, err := FormatWhere(k, v)
 		if err == nil {
 			fields[key] = fmt.Sprintf("%v", value)
 		}
@@ -165,10 +174,22 @@ func format(args map[string]interface{}) map[string]interface{} {
 	return fields
 }
 
-func parse(args map[string]interface{}) map[string]interface{} {
+func formatValues(args map[string]interface{}) map[string]interface{} {
 	fields := map[string]interface{}{}
 	for k, v := range args {
-		key, value, err := Parse(k, v.(string))
+		key, value, err := FormatValue(k, v)
+		if err == nil {
+			fields[key] = fmt.Sprintf("%v", value)
+		}
+	}
+	return fields
+}
+
+func parseWhere(args map[string]interface{}) map[string]interface{} {
+	fields := map[string]interface{}{}
+	for k, v := range args {
+		val, _ := v.(string)
+		key, value, err := ParseWhere(k, val)
 		if err == nil {
 			fields[key] = value
 		}
@@ -176,7 +197,7 @@ func parse(args map[string]interface{}) map[string]interface{} {
 	return fields
 }
 
-func Format(k string, v interface{}) (string, interface{}, error) {
+func FormatWhere(k string, v interface{}) (string, interface{}, error) {
 	switch value := v.(type) {
 	case LiteralArg:
 		return k, value.Arg, nil
@@ -213,6 +234,15 @@ func Format(k string, v interface{}) (string, interface{}, error) {
 	}
 }
 
+func FormatValue(k string, v interface{}) (string, interface{}, error) {
+	switch value := v.(type) {
+	case time.Time:
+		return k, value.Format(SqlTimeFormat), nil
+	default:
+		return k, v, nil
+	}
+}
+
 func formatArgs(args ...interface{}) string {
 	var s []string
 	for _, v := range args {
@@ -221,7 +251,7 @@ func formatArgs(args ...interface{}) string {
 	return strings.Join(s, ",")
 }
 
-func Parse(k, v string) (string, interface{}, error) {
+func ParseWhere(k, v string) (string, interface{}, error) {
 
 	p := strings.Split(k, ":")
 

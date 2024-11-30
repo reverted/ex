@@ -237,9 +237,9 @@ func (s *scanner) scanValue(value interface{}, dbTypeName string) (interface{}, 
 func (s *scanner) scanNullTime(t time.Time, dbTypeName string) interface{} {
 	switch dbTypeName {
 	case "DATE":
-		return t.Format("2006-01-02")
+		return t.Format(time.DateOnly)
 	default:
-		return t.Format("2006-01-02T15:04:05.000Z07:00")
+		return t.Format(time.RFC3339Nano)
 	}
 }
 
@@ -348,6 +348,15 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 
 		if !vf.CanSet() {
 			return fmt.Errorf("cannot set field: %s", tag)
+		}
+
+		if ts.Kind() == reflect.String && tf.Type == reflect.TypeOf(time.Time{}) {
+			timeValue, err := time.Parse(time.RFC3339Nano, item.(string))
+			if err != nil {
+				return fmt.Errorf("failed to parse time: %w", err)
+			}
+			vf.Set(reflect.ValueOf(timeValue))
+			continue
 		}
 
 		if ts.Kind() == reflect.Map {

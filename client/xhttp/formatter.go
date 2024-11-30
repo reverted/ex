@@ -115,7 +115,7 @@ func (f *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 	params := url.Values{}
 
 	for k, v := range cmd.Where {
-		key, value, err := ex.Format(k, v)
+		key, value, err := ex.FormatWhere(k, v)
 		if err != nil {
 			return nil, err
 		}
