@@ -130,14 +130,22 @@ func (c *Command) UnmarshalJSON(b []byte) error {
 		opts = append(opts, Offset(offset))
 	}
 
-	conflictConstraint, ok := contents["on_conflict_constraint"].([]string)
+	conflictConstraint, ok := contents["on_conflict_constraint"].([]interface{})
 	if ok {
-		opts = append(opts, OnConflictConstraint(conflictConstraint...))
+		var args []string
+		for _, v := range conflictConstraint {
+			args = append(args, fmt.Sprintf("%v", v))
+		}
+		opts = append(opts, OnConflictConstraint(args...))
 	}
 
-	conflictUpdate, ok := contents["on_conflict_update"].([]string)
+	conflictUpdate, ok := contents["on_conflict_update"].([]interface{})
 	if ok {
-		opts = append(opts, OnConflictUpdate(conflictUpdate...))
+		var args []string
+		for _, v := range conflictUpdate {
+			args = append(args, fmt.Sprintf("%v", v))
+		}
+		opts = append(opts, OnConflictUpdate(args...))
 	}
 
 	conflictIgnore, ok := contents["on_conflict_ignore"].(string)
