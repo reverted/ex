@@ -158,6 +158,9 @@ func (e *executor) execute(ctx context.Context, req ex.Request, data interface{}
 func (e *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data interface{}) error {
 
 	switch c := req.(type) {
+	case ex.Instruction:
+		return e.stmt(ctx, tx, ex.Statement{Stmt: c.Stmt}, nil)
+
 	case ex.Statement:
 		return e.stmt(ctx, tx, c, data)
 
@@ -306,13 +309,22 @@ func (e *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data interf
 	span, spanCtx := e.Tracer.StartSpan(ctx, "batch")
 	defer span.Finish()
 
-	for i, c := range batch.Requests {
-		if i < len(batch.Requests)-1 {
-			if err := e.executeTx(spanCtx, tx, c, nil); err != nil {
+	var indexOfLastNonInstruction int
+	for i, r := range batch.Requests {
+		if _, ok := r.(ex.Instruction); ok {
+			continue
+		}
+		indexOfLastNonInstruction = i
+	}
+
+	for i, r := range batch.Requests {
+
+		if i == indexOfLastNonInstruction { // only attempt parsing 'data' here
+			if err := e.executeTx(spanCtx, tx, r, data); err != nil {
 				return err
 			}
 		} else {
-			if err := e.executeTx(spanCtx, tx, c, data); err != nil {
+			if err := e.executeTx(spanCtx, tx, r, nil); err != nil {
 				return err
 			}
 		}

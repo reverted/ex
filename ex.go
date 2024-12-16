@@ -32,6 +32,12 @@ func Update(resource string, opts ...opt) Command {
 	)
 }
 
+func System(stmt string, args ...interface{}) Instruction {
+	return Instruction{
+		Stmt: stmt,
+	}
+}
+
 func Exec(stmt string, args ...interface{}) Statement {
 	return Statement{
 		Stmt: stmt,

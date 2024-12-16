@@ -30,6 +30,12 @@ func (b *Batch) UnmarshalJSON(bytes []byte) error {
 	return json.Unmarshal(bytes, &b.Requests)
 }
 
+type Instruction struct {
+	Stmt string
+}
+
+func (i Instruction) exec() {}
+
 type Statement struct {
 	Stmt string        `json:"stmt,omitempty"`
 	Args []interface{} `json:"args,omitempty"`

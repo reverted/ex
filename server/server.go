@@ -162,7 +162,7 @@ func (s *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]interf
 
 	for key := range s.IncludeKeys {
 		if value := ctx.Value(key); value != "" {
-			reqs = append(reqs, ex.Exec(fmt.Sprintf("SET @%s = '%v'", key, value)))
+			reqs = append(reqs, ex.System(fmt.Sprintf("SET @%s = '%v'", key, value)))
 		}
 	}
 
@@ -180,6 +180,10 @@ func (s *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]interf
 			}
 			reqs = append(reqs, c)
 		}
+	}
+
+	for key := range s.IncludeKeys {
+		reqs = append(reqs, ex.System(fmt.Sprintf("SET @%s = NULL", key)))
 	}
 
 	var data []map[string]interface{}
