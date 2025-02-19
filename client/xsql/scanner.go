@@ -171,7 +171,7 @@ func (s *scanner) scanValues(rows Rows) ([]ColumnType, []interface{}, error) {
 
 	for i, t := range types {
 		switch t.DatabaseTypeName() {
-		case "VARCHAR", "TEXT", "CHAR", "STRING", "BPCHAR":
+		case "VARCHAR", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "CHAR", "STRING", "BPCHAR":
 			values[i] = &sql.NullString{}
 		case "INT", "INT2", "INT4", "INT8", "INTEGER", "BIGINT", "SMALLINT", "SERIAL", "BIGSERIAL":
 			values[i] = &sql.NullInt64{}
@@ -245,7 +245,7 @@ func (s *scanner) scanNullTime(t time.Time, dbTypeName string) interface{} {
 
 func (s *scanner) scanRawBytes(value string, dbTypeName string) (interface{}, error) {
 	switch dbTypeName {
-	case "VARCHAR", "TEXT":
+	case "VARCHAR", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "CHAR", "STRING", "BPCHAR":
 		return s.scanRawString(value), nil
 	case "DECIMAL":
 		return strconv.ParseFloat(value, 64)
