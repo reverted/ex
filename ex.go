@@ -96,6 +96,10 @@ func (c ColumnConfig) opt(cmd *Command) {
 	cmd.ColumnConfig = c
 }
 
+func Group(grouping ...string) opt {
+	return GroupConfig(grouping)
+}
+
 func GroupBy(grouping ...string) opt {
 	return GroupConfig(grouping)
 }
@@ -107,6 +111,10 @@ func (c GroupConfig) opt(cmd *Command) {
 }
 
 func Order(ordering ...string) opt {
+	return OrderConfig(ordering)
+}
+
+func OrderBy(ordering ...string) opt {
 	return OrderConfig(ordering)
 }
 
