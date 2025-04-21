@@ -153,7 +153,11 @@ func (f *formatter) FormatValueArg(index int, k string, v interface{}) (string, 
 		return fmt.Sprintf("%s = $%d", k, index), []interface{}{string(data)}
 
 	case time.Time:
-		return fmt.Sprintf("%s = ?", k), []interface{}{value.Format(ex.SqlTimeFormat)}
+		return fmt.Sprintf("%s = $%d", k, index), []interface{}{value.Format(ex.SqlTimeFormat)}
+
+	case []any, map[string]any:
+		data, _ := json.Marshal(value)
+		return fmt.Sprintf("%s = $%d", k, index), []interface{}{string(data)}
 
 	default:
 		switch reflect.ValueOf(value).Kind() {

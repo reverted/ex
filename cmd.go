@@ -64,7 +64,7 @@ func (c Command) MarshalJSON() ([]byte, error) {
 		"action":   c.Action,
 		"resource": c.Resource,
 		"where":    formatWhere(c.Where),
-		"values":   formatValues(c.Values),
+		"values":   FormatValues(c.Values),
 		"columns":  c.ColumnConfig,
 		"group":    c.GroupConfig,
 		"order":    c.OrderConfig,
@@ -188,12 +188,12 @@ func formatWhere(args map[string]interface{}) map[string]interface{} {
 	return fields
 }
 
-func formatValues(args map[string]interface{}) map[string]interface{} {
+func FormatValues(args map[string]interface{}) map[string]interface{} {
 	fields := map[string]interface{}{}
 	for k, v := range args {
 		key, value, err := FormatValue(k, v)
 		if err == nil {
-			fields[key] = fmt.Sprintf("%v", value)
+			fields[key] = value
 		}
 	}
 	return fields
@@ -252,6 +252,9 @@ func FormatValue(k string, v interface{}) (string, interface{}, error) {
 	switch value := v.(type) {
 	case time.Time:
 		return k, value.Format(SqlTimeFormat), nil
+	case JsonArg:
+		b, err := json.Marshal(value.Arg)
+		return k, b, err
 	default:
 		return k, v, nil
 	}

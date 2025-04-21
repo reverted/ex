@@ -167,11 +167,11 @@ func (f *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
 	return res, nil
 }
 
-func (f *formatter) FormatBodyForMethod(method string, values interface{}) (io.Reader, error) {
+func (f *formatter) FormatBodyForMethod(method string, values ex.Values) (io.Reader, error) {
 
 	switch method {
 	case "PUT", "POST":
-		return f.FormatBody(values)
+		return f.FormatBody(ex.FormatValues(values))
 	default:
 		return http.NoBody, nil
 	}
