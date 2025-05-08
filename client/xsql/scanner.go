@@ -394,10 +394,15 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 						sliceValue.Index(j).Set(elemValue)
 
 					} else if reflect.TypeOf(subSlice[j]).AssignableTo(elemType) {
+						// Handle cases where the types match
 						sliceValue.Index(j).Set(reflect.ValueOf(subSlice[j]))
 
+					} else if reflect.TypeOf(subSlice[j]).Kind() == reflect.Float64 && elemType.Kind() == reflect.Int {
+						// Handle special conversion cases (float64 to int)
+						sliceValue.Index(j).Set(reflect.ValueOf(int(subSlice[j].(float64))))
+
 					} else {
-						return fmt.Errorf("cannot handle slice of %v", elemType)
+						return fmt.Errorf("cannot handle slice conversion (%v to %v)", reflect.TypeOf(subSlice[j]), elemType)
 					}
 				}
 				vf.Set(sliceValue)
