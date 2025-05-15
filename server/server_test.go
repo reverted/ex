@@ -197,7 +197,9 @@ var _ = Describe("Server", func() {
 			Context("when the table is empty", func() {
 				BeforeEach(func() {
 					request.Body = io.NopCloser(
-						bytes.NewBufferString(`[{"action": "INSERT", "resource": "resources", "values": {"name": "resource-1"}}]`),
+						bytes.NewBufferString(`{"requests": [
+						  {"action": "INSERT", "resource": "resources", "values": {"name": "resource-1"}}
+						]}`),
 					)
 				})
 
@@ -226,14 +228,14 @@ var _ = Describe("Server", func() {
 				Context("executing multiple commands", func() {
 					BeforeEach(func() {
 						request.Body = io.NopCloser(
-							bytes.NewBufferString(`[
+							bytes.NewBufferString(`{"requests": [
 							  {"action": "DELETE", "resource": "resources"},
 							  {"action": "INSERT", "resource": "resources", "values": {"name": "resource-4"}},
 							  {"action": "INSERT", "resource": "resources", "values": {"name": "resource-5"}},
 							  {"action": "INSERT", "resource": "resources", "values": {"name": "resource-6"}},
 							  {"action": "INSERT", "resource": "resources", "values": {"name": "resource-7"}},
 							  {"action": "QUERY", "resource": "resources", "where": {"name": "resource-4"}}
-							]`),
+							]}`),
 						)
 					})
 
