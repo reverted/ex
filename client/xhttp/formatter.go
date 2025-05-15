@@ -115,7 +115,7 @@ func (f *formatter) FormatParams(cmd ex.Command) (url.Values, error) {
 	params := url.Values{}
 
 	for k, v := range cmd.Where {
-		key, value, err := ex.FormatWhere(k, v)
+		key, value, err := ex.FormatWhereArg(k, v)
 		if err != nil {
 			return nil, err
 		}
@@ -171,13 +171,13 @@ func (f *formatter) FormatBodyForMethod(method string, values ex.Values) (io.Rea
 
 	switch method {
 	case "PUT", "POST":
-		return f.FormatBody(ex.FormatValues(values))
+		return f.FormatBody(values)
 	default:
 		return http.NoBody, nil
 	}
 }
 
-func (f *formatter) FormatBody(values interface{}) (io.Reader, error) {
+func (f *formatter) FormatBody(values any) (io.Reader, error) {
 
 	content, err := json.Marshal(values)
 	if err != nil {

@@ -51,7 +51,7 @@ type tx struct {
 	*sql.Tx
 }
 
-func (t *tx) QueryContext(ctx context.Context, stmt string, args ...interface{}) (Rows, error) {
+func (t *tx) QueryContext(ctx context.Context, stmt string, args ...any) (Rows, error) {
 	r, err := t.Tx.QueryContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (t *tx) QueryContext(ctx context.Context, stmt string, args ...interface{})
 	return &rows{r}, nil
 }
 
-func (t *tx) Query(stmt string, args ...interface{}) (Rows, error) {
+func (t *tx) Query(stmt string, args ...any) (Rows, error) {
 	r, err := t.Tx.Query(stmt, args...)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (t *tx) Query(stmt string, args ...interface{}) (Rows, error) {
 	return &rows{r}, nil
 }
 
-func (t *tx) ExecContext(ctx context.Context, stmt string, args ...interface{}) (Result, error) {
+func (t *tx) ExecContext(ctx context.Context, stmt string, args ...any) (Result, error) {
 	r, err := t.Tx.ExecContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (t *tx) ExecContext(ctx context.Context, stmt string, args ...interface{}) 
 	return &result{r}, nil
 }
 
-func (t *tx) Exec(stmt string, args ...interface{}) (Result, error) {
+func (t *tx) Exec(stmt string, args ...any) (Result, error) {
 	r, err := t.Tx.Exec(stmt, args...)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (e emptyRows) ColumnTypes() ([]ColumnType, error) {
 	return nil, nil
 }
 
-func (e emptyRows) Scan(...interface{}) error {
+func (e emptyRows) Scan(...any) error {
 	return nil
 }
 

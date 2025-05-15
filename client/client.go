@@ -9,12 +9,12 @@ import (
 )
 
 type Logger interface {
-	Errorf(string, ...interface{})
-	Infof(string, ...interface{})
+	Errorf(string, ...any)
+	Infof(string, ...any)
 }
 
 type Executor interface {
-	Execute(context.Context, ex.Request, interface{}) (bool, error)
+	Execute(context.Context, ex.Request, any) (bool, error)
 }
 
 type Tracer interface {
@@ -22,8 +22,8 @@ type Tracer interface {
 }
 
 type Client interface {
-	Exec(ex.Request, ...interface{}) error
-	ExecContext(context.Context, ex.Request, ...interface{}) error
+	Exec(ex.Request, ...any) error
+	ExecContext(context.Context, ex.Request, ...any) error
 }
 
 func WithExecutor(executor Executor) opt {
@@ -71,11 +71,11 @@ type client struct {
 	Backoff []int
 }
 
-func (c *client) Exec(req ex.Request, res ...interface{}) error {
+func (c *client) Exec(req ex.Request, res ...any) error {
 	return c.ExecContext(context.Background(), req, res...)
 }
 
-func (c *client) ExecContext(ctx context.Context, req ex.Request, res ...interface{}) error {
+func (c *client) ExecContext(ctx context.Context, req ex.Request, res ...any) error {
 
 	span, spanCtx := c.Tracer.StartSpan(ctx, "exec")
 	defer span.Finish()
@@ -87,7 +87,7 @@ func (c *client) ExecContext(ctx context.Context, req ex.Request, res ...interfa
 	}
 }
 
-func (c *client) execute(ctx context.Context, req ex.Request, data interface{}) error {
+func (c *client) execute(ctx context.Context, req ex.Request, data any) error {
 
 	var err error
 	var retry bool

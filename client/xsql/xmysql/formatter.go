@@ -18,29 +18,34 @@ func NewFormatter() *formatter {
 
 type formatter struct{}
 
-func (f *formatter) Format(cmd ex.Command) (ex.Statement, error) {
+func (f *formatter) Format(cmd ex.Command, types map[string]string) (ex.Statement, error) {
+
+	if types == nil {
+		types = map[string]string{}
+	}
+
 	switch strings.ToUpper(cmd.Action) {
 	case "QUERY":
-		return f.FormatQuery(cmd), nil
+		return f.FormatQuery(cmd, types), nil
 
 	case "DELETE":
-		return f.FormatDelete(cmd), nil
+		return f.FormatDelete(cmd, types), nil
 
 	case "INSERT":
-		return f.FormatInsert(cmd), nil
+		return f.FormatInsert(cmd, types), nil
 
 	case "UPDATE":
-		return f.FormatUpdate(cmd), nil
+		return f.FormatUpdate(cmd, types), nil
 
 	default:
 		return ex.Statement{}, errors.New("unsupported cmd")
 	}
 }
 
-func (f *formatter) FormatQuery(cmd ex.Command) ex.Statement {
+func (f *formatter) FormatQuery(cmd ex.Command, types map[string]string) ex.Statement {
 
 	var stmt string
-	var args []interface{}
+	var args []any
 
 	if clause := f.FormatColumns(cmd.ColumnConfig); clause != "" {
 		stmt = "SELECT " + clause + " FROM " + cmd.Resource
@@ -72,10 +77,10 @@ func (f *formatter) FormatQuery(cmd ex.Command) ex.Statement {
 	return ex.Exec(stmt, args...)
 }
 
-func (f *formatter) FormatDelete(cmd ex.Command) ex.Statement {
+func (f *formatter) FormatDelete(cmd ex.Command, types map[string]string) ex.Statement {
 
 	var stmt string
-	var args []interface{}
+	var args []any
 
 	stmt = "DELETE FROM " + cmd.Resource
 
@@ -95,14 +100,14 @@ func (f *formatter) FormatDelete(cmd ex.Command) ex.Statement {
 	return ex.Exec(stmt, args...)
 }
 
-func (f *formatter) FormatInsert(cmd ex.Command) ex.Statement {
+func (f *formatter) FormatInsert(cmd ex.Command, types map[string]string) ex.Statement {
 
 	var stmt string
-	var args []interface{}
+	var args []any
 
 	stmt = "INSERT INTO " + cmd.Resource
 
-	if columns, columnArgs := f.FormatValues(cmd.Values); columns != "" {
+	if columns, columnArgs := f.FormatValues(cmd.Values, types); columns != "" {
 		stmt += " SET " + columns
 		args = append(args, columnArgs...)
 	}
@@ -114,14 +119,14 @@ func (f *formatter) FormatInsert(cmd ex.Command) ex.Statement {
 	return ex.Exec(stmt, args...)
 }
 
-func (f *formatter) FormatUpdate(cmd ex.Command) ex.Statement {
+func (f *formatter) FormatUpdate(cmd ex.Command, types map[string]string) ex.Statement {
 
 	var stmt string
-	var args []interface{}
+	var args []any
 
 	stmt = "UPDATE " + cmd.Resource
 
-	if columns, columnArgs := f.FormatValues(cmd.Values); columns != "" {
+	if columns, columnArgs := f.FormatValues(cmd.Values, types); columns != "" {
 		stmt += " SET " + columns
 		args = append(args, columnArgs...)
 	}
@@ -142,35 +147,41 @@ func (f *formatter) FormatUpdate(cmd ex.Command) ex.Statement {
 	return ex.Exec(stmt, args...)
 }
 
-func (f *formatter) FormatValueArg(k string, v interface{}) (string, []interface{}) {
+func (f *formatter) FormatValueArg(k string, v any, dbType string) (string, []any) {
 	switch value := v.(type) {
 	case ex.LiteralArg:
 		return fmt.Sprintf("%s = %s", k, value.Arg), nil
 
 	case ex.JsonArg:
 		data, _ := json.Marshal(value.Arg)
-		return fmt.Sprintf("%s = ?", k), []interface{}{string(data)}
+		return fmt.Sprintf("%s = ?", k), []any{string(data)}
 
 	case time.Time:
-		return fmt.Sprintf("%s = ?", k), []interface{}{value.Format(ex.SqlTimeFormat)}
+		return fmt.Sprintf("%s = ?", k), []any{value.Format(ex.SqlTimeFormat)}
 
 	case []any, map[string]any:
 		data, _ := json.Marshal(value)
-		return fmt.Sprintf("%s = ?", k), []interface{}{string(data)}
+		return fmt.Sprintf("%s = ?", k), []any{string(data)}
 
 	default:
 		switch reflect.ValueOf(value).Kind() {
 		case reflect.Slice, reflect.Map:
 			data, _ := json.Marshal(value)
-			return fmt.Sprintf("%s = ?", k), []interface{}{string(data)}
+			return fmt.Sprintf("%s = ?", k), []any{string(data)}
 
 		default:
-			return fmt.Sprintf("%s = ?", k), []interface{}{v}
+			switch {
+			case strings.EqualFold(dbType, "JSON"):
+				data, _ := json.Marshal(value)
+				return fmt.Sprintf("%s = ?", k), []any{string(data)}
+			default:
+				return fmt.Sprintf("%s = ?", k), []any{v}
+			}
 		}
 	}
 }
 
-func (f *formatter) FormatValues(values ex.Values) (string, []interface{}) {
+func (f *formatter) FormatValues(values ex.Values, types map[string]string) (string, []any) {
 
 	var keys []string
 	for k := range values {
@@ -179,11 +190,11 @@ func (f *formatter) FormatValues(values ex.Values) (string, []interface{}) {
 	sort.Strings(keys)
 
 	var columns []string
-	var args []interface{}
+	var args []any
 
 	for _, k := range keys {
 		v := values[k]
-		column, arg := f.FormatValueArg(k, v)
+		column, arg := f.FormatValueArg(k, v, types[k])
 		if column != "" {
 			columns = append(columns, column)
 			args = append(args, arg...)
@@ -252,27 +263,27 @@ func (f *formatter) FormatConflict(conflict ex.OnConflictConfig) string {
 
 }
 
-func (f *formatter) FormatWhereArg(k string, v interface{}) (string, []interface{}) {
+func (f *formatter) FormatWhereArg(k string, v any) (string, []any) {
 	switch value := v.(type) {
 
 	case ex.LiteralArg:
 		return fmt.Sprintf("%s = %s", k, value.Arg), nil
 	case ex.EqArg:
-		return fmt.Sprintf("%s = ?", k), []interface{}{value.Arg}
+		return fmt.Sprintf("%s = ?", k), []any{value.Arg}
 	case ex.NotEqArg:
-		return fmt.Sprintf("%s != ?", k), []interface{}{value.Arg}
+		return fmt.Sprintf("%s != ?", k), []any{value.Arg}
 	case ex.GtArg:
-		return fmt.Sprintf("%s > ?", k), []interface{}{value.Arg}
+		return fmt.Sprintf("%s > ?", k), []any{value.Arg}
 	case ex.GtEqArg:
-		return fmt.Sprintf("%s >= ?", k), []interface{}{value.Arg}
+		return fmt.Sprintf("%s >= ?", k), []any{value.Arg}
 	case ex.LtArg:
-		return fmt.Sprintf("%s < ?", k), []interface{}{value.Arg}
+		return fmt.Sprintf("%s < ?", k), []any{value.Arg}
 	case ex.LtEqArg:
-		return fmt.Sprintf("%s <= ?", k), []interface{}{value.Arg}
+		return fmt.Sprintf("%s <= ?", k), []any{value.Arg}
 	case ex.LikeArg:
-		return fmt.Sprintf("%s LIKE ?", k), []interface{}{"%" + value.Arg + "%"}
+		return fmt.Sprintf("%s LIKE ?", k), []any{"%" + value.Arg + "%"}
 	case ex.NotLikeArg:
-		return fmt.Sprintf("%s NOT LIKE ?", k), []interface{}{"%" + value.Arg + "%"}
+		return fmt.Sprintf("%s NOT LIKE ?", k), []any{"%" + value.Arg + "%"}
 	case ex.IsArg:
 		return fmt.Sprintf("%s IS %v", k, f.formatIs(value.Arg)), nil
 	case ex.IsNotArg:
@@ -282,15 +293,15 @@ func (f *formatter) FormatWhereArg(k string, v interface{}) (string, []interface
 	case ex.NotInArg:
 		return fmt.Sprintf("%s NOT IN (%s)", k, f.formatIn(value)), value
 	case ex.BtwnArg:
-		return fmt.Sprintf("%s BETWEEN ? AND ?", k), []interface{}{value.Start, value.End}
+		return fmt.Sprintf("%s BETWEEN ? AND ?", k), []any{value.Start, value.End}
 	case ex.NotBtwnArg:
-		return fmt.Sprintf("%s NOT BETWEEN ? AND ?", k), []interface{}{value.Start, value.End}
+		return fmt.Sprintf("%s NOT BETWEEN ? AND ?", k), []any{value.Start, value.End}
 	default:
-		return fmt.Sprintf("%s = ?", k), []interface{}{value}
+		return fmt.Sprintf("%s = ?", k), []any{value}
 	}
 }
 
-func (f *formatter) FormatWhere(where ex.Where) (string, []interface{}) {
+func (f *formatter) FormatWhere(where ex.Where) (string, []any) {
 
 	var keys []string
 	for k := range where {
@@ -299,7 +310,7 @@ func (f *formatter) FormatWhere(where ex.Where) (string, []interface{}) {
 	sort.Strings(keys)
 
 	var columns []string
-	var args []interface{}
+	var args []any
 
 	for _, k := range keys {
 		v := where[k]
@@ -313,11 +324,11 @@ func (f *formatter) FormatWhere(where ex.Where) (string, []interface{}) {
 	return strings.Join(columns, " AND "), args
 }
 
-func (f *formatter) formatIn(args []interface{}) string {
+func (f *formatter) formatIn(args []any) string {
 	qs := strings.Repeat("?", len(args))
 	return strings.Join(strings.Split(qs, ""), ",")
 }
 
-func (f *formatter) formatIs(_ interface{}) string {
+func (f *formatter) formatIs(_ any) string {
 	return "NULL"
 }

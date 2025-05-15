@@ -59,12 +59,14 @@ func (p *parser) ParseBatch(r *http.Request) (ex.Request, error) {
 		return batch, err
 	}
 
-	var cmds []ex.Command
+	var cmds struct {
+		Commands []ex.Command `json:"requests,omitempty"`
+	}
 	if err = json.Unmarshal(body, &cmds); err != nil {
 		return batch, err
 	}
 
-	for _, c := range cmds {
+	for _, c := range cmds.Commands {
 		batch.Requests = append(batch.Requests, c)
 	}
 
@@ -95,7 +97,7 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 		return ex.Command{}, err
 	}
 
-	order, err := p.ParseOrder(r)
+	order, err := p.ParseOrderBy(r)
 	if err != nil {
 		return ex.Command{}, err
 	}
@@ -117,10 +119,10 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 
 	switch r.Method {
 	case "GET":
-		return ex.Query(resource, where, ex.Columns(columns...), ex.GroupBy(groupBy...), ex.Order(order...), ex.Limit(limit), ex.Offset(offset)), nil
+		return ex.Query(resource, where, ex.Columns(columns...), ex.GroupBy(groupBy...), ex.OrderBy(order...), ex.Limit(limit), ex.Offset(offset)), nil
 
 	case "DELETE":
-		return ex.Delete(resource, where, ex.Order(order...), ex.Limit(limit)), nil
+		return ex.Delete(resource, where, ex.OrderBy(order...), ex.Limit(limit)), nil
 
 	case "POST":
 		if len(values) == 0 {
@@ -140,7 +142,7 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 			return ex.Command{}, errors.New("body does not contain a valid object or array")
 		}
 		if len(values) == 1 {
-			return ex.Update(resource, values[0], where, ex.Order(order...), ex.Limit(limit)), nil
+			return ex.Update(resource, values[0], where, ex.OrderBy(order...), ex.Limit(limit)), nil
 		}
 		return ex.Command{}, errors.New("arrays not supported in PUT body")
 
@@ -191,7 +193,7 @@ func (p *parser) ParseGroupBy(r *http.Request) ([]string, error) {
 	}
 }
 
-func (p *parser) ParseOrder(r *http.Request) ([]string, error) {
+func (p *parser) ParseOrderBy(r *http.Request) ([]string, error) {
 	if param := r.Header.Get("X-Order-By"); len(param) > 0 {
 		return strings.Split(param, ","), nil
 	} else {
@@ -244,7 +246,7 @@ func (p *parser) ParseWhere(r *http.Request) (ex.Where, error) {
 	where := ex.Where{}
 
 	for k, v := range r.URL.Query() {
-		key, value, err := ex.ParseWhere(k, v[0])
+		key, value, err := ex.ParseWhereArg(k, v[0])
 		if err != nil {
 			return nil, err
 		}

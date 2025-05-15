@@ -18,8 +18,8 @@ const (
 )
 
 type Logger interface {
-	Error(a ...interface{})
-	Infof(format string, a ...interface{})
+	Error(a ...any)
+	Infof(format string, a ...any)
 }
 
 type Tracer interface {
@@ -27,7 +27,7 @@ type Tracer interface {
 }
 
 type Client interface {
-	ExecContext(context.Context, ex.Request, ...interface{}) error
+	ExecContext(context.Context, ex.Request, ...any) error
 }
 
 type Parser interface {
@@ -39,7 +39,7 @@ type Interceptor interface {
 }
 
 type Processor interface {
-	Process(context.Context, []map[string]interface{}) ([]map[string]interface{}, error)
+	Process(context.Context, []map[string]any) ([]map[string]any, error)
 }
 
 type opt func(*server)
@@ -133,7 +133,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) serve(r *http.Request) ([]map[string]interface{}, error) {
+func (s *server) serve(r *http.Request) ([]map[string]any, error) {
 
 	req, err := s.Parser.Parse(r)
 	if err != nil {
@@ -155,7 +155,7 @@ func (s *server) serve(r *http.Request) ([]map[string]interface{}, error) {
 	}
 }
 
-func (s *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]interface{}, error) {
+func (s *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]any, error) {
 
 	var err error
 	var reqs []ex.Request
@@ -186,7 +186,7 @@ func (s *server) batch(ctx context.Context, batch ex.Batch) ([]map[string]interf
 		reqs = append(reqs, ex.System(fmt.Sprintf("SET @%s = NULL", key)))
 	}
 
-	var data []map[string]interface{}
+	var data []map[string]any
 	if err = s.Client.ExecContext(ctx, ex.Bulk(reqs...), &data); err != nil {
 		return nil, err
 	}
@@ -210,20 +210,20 @@ func (s *server) statusCode(err error) int {
 	}
 }
 
-func (s *server) errorMessage(err error) map[string]interface{} {
+func (s *server) errorMessage(err error) map[string]any {
 	switch t := err.(type) {
 	case *statusError:
-		return map[string]interface{}{
+		return map[string]any{
 			"error_code":    t.StatusCode,
 			"error_message": t.Error(),
 		}
 	case *mysql.MySQLError:
-		return map[string]interface{}{
+		return map[string]any{
 			"error_code":    t.Number,
 			"error_message": t.Message,
 		}
 	default:
-		return map[string]interface{}{
+		return map[string]any{
 			"error_message": err.Error(),
 		}
 	}
@@ -239,13 +239,13 @@ func (i InterceptorFunc) Intercept(ctx context.Context, cmd ex.Command) (ex.Comm
 	return i(ctx, cmd)
 }
 
-func Process(processor func(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error)) ProcessorFunc {
+func Process(processor func(ctx context.Context, res []map[string]any) ([]map[string]any, error)) ProcessorFunc {
 	return ProcessorFunc(processor)
 }
 
-type ProcessorFunc func(context.Context, []map[string]interface{}) ([]map[string]interface{}, error)
+type ProcessorFunc func(context.Context, []map[string]any) ([]map[string]any, error)
 
-func (p ProcessorFunc) Process(ctx context.Context, res []map[string]interface{}) ([]map[string]interface{}, error) {
+func (p ProcessorFunc) Process(ctx context.Context, res []map[string]any) ([]map[string]any, error) {
 	return p(ctx, res)
 }
 

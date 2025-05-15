@@ -12,7 +12,7 @@ import (
 )
 
 type Logger interface {
-	Infof(format string, a ...interface{})
+	Infof(format string, a ...any)
 }
 
 type Tracer interface {
@@ -78,7 +78,7 @@ type executor struct {
 	Client
 }
 
-func (e *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
+func (e *executor) Execute(ctx context.Context, req ex.Request, data any) (bool, error) {
 
 	r, err := e.Formatter.Format(req)
 	if err != nil {
@@ -88,7 +88,7 @@ func (e *executor) Execute(ctx context.Context, req ex.Request, data interface{}
 	return e.exec(ctx, r, data)
 }
 
-func (e *executor) exec(ctx context.Context, r *http.Request, data interface{}) (bool, error) {
+func (e *executor) exec(ctx context.Context, r *http.Request, data any) (bool, error) {
 
 	e.Logger.Infof(">>> %v", r.URL)
 

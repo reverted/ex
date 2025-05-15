@@ -25,7 +25,7 @@ var _ = Describe("Formatter", func() {
 	})
 
 	JustBeforeEach(func() {
-		stmt, err = formatter.Format(cmd)
+		stmt, err = formatter.Format(cmd, nil)
 	})
 
 	Context("when the command is unknown", func() {

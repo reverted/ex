@@ -3,9 +3,11 @@ package xsql
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/reverted/ex"
@@ -14,7 +16,7 @@ import (
 )
 
 type Logger interface {
-	Infof(string, ...interface{})
+	Infof(string, ...any)
 }
 
 type Tracer interface {
@@ -22,11 +24,11 @@ type Tracer interface {
 }
 
 type Formatter interface {
-	Format(ex.Command) (ex.Statement, error)
+	Format(ex.Command, map[string]string) (ex.Statement, error)
 }
 
 type Scanner interface {
-	Scan(Rows, interface{}) error
+	Scan(Rows, any) error
 }
 
 type Connection interface {
@@ -35,10 +37,10 @@ type Connection interface {
 
 type Tx interface {
 	Rollback() error
-	QueryContext(context.Context, string, ...interface{}) (Rows, error)
-	Query(string, ...interface{}) (Rows, error)
-	ExecContext(context.Context, string, ...interface{}) (Result, error)
-	Exec(string, ...interface{}) (Result, error)
+	QueryContext(context.Context, string, ...any) (Rows, error)
+	Query(string, ...any) (Rows, error)
+	ExecContext(context.Context, string, ...any) (Result, error)
+	Exec(string, ...any) (Result, error)
 	Commit() error
 }
 
@@ -46,7 +48,7 @@ type Rows interface {
 	Err() error
 	Next() bool
 	ColumnTypes() ([]ColumnType, error)
-	Scan(...interface{}) error
+	Scan(...any) error
 	Close() error
 }
 
@@ -105,6 +107,7 @@ func NewExecutor(logger Logger, opts ...opt) *executor {
 		Tracer:    noopTracer{},
 		Scanner:   NewScanner(),
 		Formatter: xmysql.NewFormatter(),
+		TypeCache: TypeCache{},
 	}
 
 	for _, opt := range opts {
@@ -120,14 +123,18 @@ func NewExecutor(logger Logger, opts ...opt) *executor {
 }
 
 type executor struct {
+	sync.Mutex
+
 	Logger
 	Formatter
 	Connection
 	Scanner
 	Tracer
+
+	TypeCache TypeCache
 }
 
-func (e *executor) Execute(ctx context.Context, req ex.Request, data interface{}) (bool, error) {
+func (e *executor) Execute(ctx context.Context, req ex.Request, data any) (bool, error) {
 	err := e.execute(ctx, req, data)
 
 	switch t := err.(type) {
@@ -139,7 +146,7 @@ func (e *executor) Execute(ctx context.Context, req ex.Request, data interface{}
 	}
 }
 
-func (e *executor) execute(ctx context.Context, req ex.Request, data interface{}) error {
+func (e *executor) execute(ctx context.Context, req ex.Request, data any) error {
 
 	tx, err := e.Connection.Begin()
 	if err != nil {
@@ -155,7 +162,7 @@ func (e *executor) execute(ctx context.Context, req ex.Request, data interface{}
 	return tx.Commit()
 }
 
-func (e *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data interface{}) error {
+func (e *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data any) error {
 
 	switch c := req.(type) {
 	case ex.Instruction:
@@ -175,7 +182,7 @@ func (e *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data in
 	}
 }
 
-func (e *executor) cmd(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) cmd(ctx context.Context, tx Tx, cmd ex.Command, data any) error {
 
 	switch strings.ToUpper(cmd.Action) {
 	case "QUERY":
@@ -195,9 +202,14 @@ func (e *executor) cmd(ctx context.Context, tx Tx, cmd ex.Command, data interfac
 	}
 }
 
-func (e *executor) query(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) query(ctx context.Context, tx Tx, cmd ex.Command, data any) error {
 
-	stmt, err := e.Formatter.Format(cmd)
+	types, err := e.getColumnTypes(ctx, tx, cmd.Resource)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := e.Formatter.Format(cmd, types)
 	if err != nil {
 		return err
 	}
@@ -217,9 +229,14 @@ func (e *executor) query(ctx context.Context, tx Tx, cmd ex.Command, data interf
 	return e.Scanner.Scan(rows, data)
 }
 
-func (e *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data any) error {
 
-	stmt, err := e.Formatter.Format(cmd)
+	types, err := e.getColumnTypes(ctx, tx, cmd.Resource)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := e.Formatter.Format(cmd, types)
 	if err != nil {
 		return err
 	}
@@ -239,9 +256,14 @@ func (e *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, data inter
 	return e.stmt(spanCtx, tx, stmt, nil)
 }
 
-func (e *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data any) error {
 
-	stmt, err := e.Formatter.Format(cmd)
+	types, err := e.getColumnTypes(ctx, tx, cmd.Resource)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := e.Formatter.Format(cmd, types)
 	if err != nil {
 		return err
 	}
@@ -273,9 +295,14 @@ func (e *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, data inter
 	return nil
 }
 
-func (e *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data interface{}) error {
+func (e *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data any) error {
 
-	stmt, err := e.Formatter.Format(cmd)
+	types, err := e.getColumnTypes(ctx, tx, cmd.Resource)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := e.Formatter.Format(cmd, types)
 	if err != nil {
 		return err
 	}
@@ -304,7 +331,7 @@ func (e *executor) update(ctx context.Context, tx Tx, cmd ex.Command, data inter
 	return nil
 }
 
-func (e *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data interface{}) error {
+func (e *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data any) error {
 
 	span, spanCtx := e.Tracer.StartSpan(ctx, "batch")
 	defer span.Finish()
@@ -333,7 +360,7 @@ func (e *executor) batch(ctx context.Context, tx Tx, batch ex.Batch, data interf
 	return nil
 }
 
-func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement, data interface{}) error {
+func (e *executor) stmt(ctx context.Context, tx Tx, stmt ex.Statement, data any) error {
 
 	span, spanCtx := e.Tracer.StartSpan(ctx, "stmt")
 	defer span.Finish()
@@ -369,6 +396,38 @@ func (e *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement) (R
 	return tx.ExecContext(spanCtx, stmt.Stmt, stmt.Args...)
 }
 
+func (e *executor) getColumnTypes(ctx context.Context, tx Tx, tableName string) (TableTypes, error) {
+	e.Lock()
+	defer e.Unlock()
+
+	if types, ok := e.TypeCache[tableName]; ok && len(types) > 0 {
+		return types, nil
+	}
+
+	query := fmt.Sprintf("SELECT * FROM %s LIMIT 0", tableName)
+	rows, err := e.queryContext(ctx, tx, ex.Statement{Stmt: query})
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	columnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	columns := TableTypes{}
+	for _, col := range columnTypes {
+		columns[col.Name()] = col.DatabaseTypeName()
+	}
+
+	if len(columns) > 0 {
+		e.TypeCache[tableName] = columns
+	}
+
+	return columns, nil
+}
+
 type noopSpan struct{}
 
 func (s noopSpan) Finish() {}
@@ -385,3 +444,7 @@ func (t noopTracer) InjectSpan(ctx context.Context, r *http.Request) {
 func (t noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.Context) {
 	return noopSpan{}, r.Context()
 }
+
+type TypeCache map[string]TableTypes
+
+type TableTypes map[string]string

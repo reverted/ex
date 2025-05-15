@@ -32,13 +32,13 @@ func Update(resource string, opts ...opt) Command {
 	)
 }
 
-func System(stmt string, args ...interface{}) Instruction {
+func System(stmt string, args ...any) Instruction {
 	return Instruction{
 		Stmt: stmt,
 	}
 }
 
-func Exec(stmt string, args ...interface{}) Statement {
+func Exec(stmt string, args ...any) Statement {
 	return Statement{
 		Stmt: stmt,
 		Args: args,
@@ -74,13 +74,13 @@ func cmd(action, resource string, opts ...opt) Command {
 	return cmd
 }
 
-type Where map[string]interface{}
+type Where map[string]any
 
 func (w Where) opt(cmd *Command) {
 	cmd.Where = w
 }
 
-type Values map[string]interface{}
+type Values map[string]any
 
 func (v Values) opt(cmd *Command) {
 	cmd.Values = v
@@ -145,10 +145,10 @@ func (c OffsetConfig) opt(cmd *Command) {
 }
 
 type OnConflictConfig struct {
-	Constraint []string
-	Update     []string
-	Ignore     string
-	Error      string
+	Constraint []string `json:"constraint,omitempty"`
+	Update     []string `json:"update,omitempty"`
+	Ignore     string   `json:"ignore,omitempty"`
+	Error      string   `json:"error,omitempty"`
 }
 
 func (o OnConflictConfig) opt(cmd *Command) {
@@ -180,52 +180,52 @@ func OnConflictError(err string) opt {
 	return OnConflictConfig{Error: err}
 }
 
-func Eq(arg interface{}) EqArg {
+func Eq(arg any) EqArg {
 	return EqArg{arg}
 }
 
 type EqArg struct {
-	Arg interface{}
+	Arg any
 }
 
-func NotEq(arg interface{}) NotEqArg {
+func NotEq(arg any) NotEqArg {
 	return NotEqArg{arg}
 }
 
 type NotEqArg struct {
-	Arg interface{}
+	Arg any
 }
 
-func Gt(arg interface{}) GtArg {
+func Gt(arg any) GtArg {
 	return GtArg{arg}
 }
 
 type GtArg struct {
-	Arg interface{}
+	Arg any
 }
 
-func GtEq(arg interface{}) GtEqArg {
+func GtEq(arg any) GtEqArg {
 	return GtEqArg{arg}
 }
 
 type GtEqArg struct {
-	Arg interface{}
+	Arg any
 }
 
-func Lt(arg interface{}) LtArg {
+func Lt(arg any) LtArg {
 	return LtArg{arg}
 }
 
 type LtArg struct {
-	Arg interface{}
+	Arg any
 }
 
-func LtEq(arg interface{}) LtEqArg {
+func LtEq(arg any) LtEqArg {
 	return LtEqArg{arg}
 }
 
 type LtEqArg struct {
-	Arg interface{}
+	Arg any
 }
 
 func Like(arg string) LikeArg {
@@ -244,48 +244,48 @@ type NotLikeArg struct {
 	Arg string
 }
 
-func Is(arg interface{}) IsArg {
+func Is(arg any) IsArg {
 	return IsArg{arg}
 }
 
 type IsArg struct {
-	Arg interface{}
+	Arg any
 }
 
-func IsNot(arg interface{}) IsNotArg {
+func IsNot(arg any) IsNotArg {
 	return IsNotArg{arg}
 }
 
 type IsNotArg struct {
-	Arg interface{}
+	Arg any
 }
 
-func In(args ...interface{}) InArg {
+func In(args ...any) InArg {
 	return InArg(args)
 }
 
-type InArg []interface{}
+type InArg []any
 
-func NotIn(args ...interface{}) NotInArg {
+func NotIn(args ...any) NotInArg {
 	return NotInArg(args)
 }
 
-type NotInArg []interface{}
+type NotInArg []any
 
-func Btwn(start, end interface{}) BtwnArg {
+func Btwn(start, end any) BtwnArg {
 	return BtwnArg{start, end}
 }
 
 type BtwnArg struct {
-	Start, End interface{}
+	Start, End any
 }
 
-func NotBtwn(start, end interface{}) NotBtwnArg {
+func NotBtwn(start, end any) NotBtwnArg {
 	return NotBtwnArg{start, end}
 }
 
 type NotBtwnArg struct {
-	Start, End interface{}
+	Start, End any
 }
 
 func Literal(arg string) LiteralArg {
@@ -296,12 +296,12 @@ type LiteralArg struct {
 	Arg string
 }
 
-func Json(arg interface{}) JsonArg {
+func Json(arg any) JsonArg {
 	return JsonArg{arg}
 }
 
 type JsonArg struct {
-	Arg interface{}
+	Arg any
 }
 
 var Null = Literal("NULL")

@@ -89,7 +89,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when formatting the request fails", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Query("resources")).Return(ex.Statement{}, errors.New("nope"))
+					mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
 				})
 
 				It("errors", func() {
@@ -99,7 +99,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when formatting the request succeeds", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Query("resources")).Return(ex.Statement{
+					mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{
 						Stmt: "some-stmt",
 						Args: []interface{}{"some-arg"},
 					}, nil)
@@ -184,7 +184,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when formatting the request fails", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Delete("resources")).Return(ex.Statement{}, errors.New("nope"))
+					mockFormatter.EXPECT().Format(ex.Delete("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
 				})
 
 				It("errors", func() {
@@ -194,7 +194,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when formatting the request succeeds", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Delete("resources")).Return(ex.Statement{
+					mockFormatter.EXPECT().Format(ex.Delete("resources"), nil).Return(ex.Statement{
 						Stmt: "some-stmt",
 						Args: []interface{}{"some-arg"},
 					}, nil)
@@ -249,7 +249,7 @@ var _ = Describe("Executor", func() {
 
 					Context("when formatting the query fails", func() {
 						BeforeEach(func() {
-							mockFormatter.EXPECT().Format(ex.Query("resources")).Return(ex.Statement{}, errors.New("nope"))
+							mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
 						})
 
 						It("errors", func() {
@@ -259,7 +259,7 @@ var _ = Describe("Executor", func() {
 
 					Context("when formatting the query succeeds", func() {
 						BeforeEach(func() {
-							mockFormatter.EXPECT().Format(ex.Query("resources")).Return(ex.Statement{
+							mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{
 								Stmt: "some-stmt",
 								Args: []interface{}{"some-arg"},
 							}, nil)
@@ -362,7 +362,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when formatting the request fails", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Insert("resources")).Return(ex.Statement{}, errors.New("nope"))
+					mockFormatter.EXPECT().Format(ex.Insert("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
 				})
 
 				It("errors", func() {
@@ -372,7 +372,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when formatting the request succeeds", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Insert("resources")).Return(ex.Statement{
+					mockFormatter.EXPECT().Format(ex.Insert("resources"), nil).Return(ex.Statement{
 						Stmt: "some-stmt",
 						Args: []interface{}{"some-arg"},
 					}, nil)
@@ -443,7 +443,7 @@ var _ = Describe("Executor", func() {
 
 							Context("when formatting the query fails", func() {
 								BeforeEach(func() {
-									mockFormatter.EXPECT().Format(ex.Query("resources", ex.Where{"id": int64(10)})).Return(ex.Statement{}, errors.New("nope"))
+									mockFormatter.EXPECT().Format(ex.Query("resources", ex.Where{"id": int64(10)}), nil).Return(ex.Statement{}, errors.New("nope"))
 								})
 
 								It("errors", func() {
@@ -453,7 +453,7 @@ var _ = Describe("Executor", func() {
 
 							Context("when formatting the query succeeds", func() {
 								BeforeEach(func() {
-									mockFormatter.EXPECT().Format(ex.Query("resources", ex.Where{"id": int64(10)})).Return(ex.Statement{
+									mockFormatter.EXPECT().Format(ex.Query("resources", ex.Where{"id": int64(10)}), nil).Return(ex.Statement{
 										Stmt: "some-stmt",
 										Args: []interface{}{"some-arg"},
 									}, nil)
@@ -542,7 +542,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when formatting the request fails", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Update("resources")).Return(ex.Statement{}, errors.New("nope"))
+					mockFormatter.EXPECT().Format(ex.Update("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
 				})
 
 				It("errors", func() {
@@ -552,7 +552,7 @@ var _ = Describe("Executor", func() {
 
 			Context("when formatting the request succeeds", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Update("resources")).Return(ex.Statement{
+					mockFormatter.EXPECT().Format(ex.Update("resources"), nil).Return(ex.Statement{
 						Stmt: "some-stmt",
 						Args: []interface{}{"some-arg"},
 					}, nil)
@@ -606,7 +606,7 @@ var _ = Describe("Executor", func() {
 
 						Context("when formatting the query fails", func() {
 							BeforeEach(func() {
-								mockFormatter.EXPECT().Format(ex.Query("resources")).Return(ex.Statement{}, errors.New("nope"))
+								mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
 							})
 
 							It("errors", func() {
@@ -616,7 +616,7 @@ var _ = Describe("Executor", func() {
 
 						Context("when formatting the query succeeds", func() {
 							BeforeEach(func() {
-								mockFormatter.EXPECT().Format(ex.Query("resources")).Return(ex.Statement{
+								mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{
 									Stmt: "some-stmt",
 									Args: []interface{}{"some-arg"},
 								}, nil)

@@ -21,7 +21,7 @@ func NewScanner() *scanner {
 
 type scanner struct{}
 
-func (s *scanner) Scan(rows Rows, data interface{}) error {
+func (s *scanner) Scan(rows Rows, data any) error {
 
 	t := reflect.TypeOf(data)
 	v := reflect.ValueOf(data)
@@ -106,7 +106,7 @@ func (s *scanner) queryRow(rows Rows, t reflect.Type, v reflect.Value) error {
 }
 
 func (s *scanner) scanInstance(rows Rows, t reflect.Type) (reflect.Value, error) {
-	var instance interface{}
+	var instance any
 
 	switch t.Kind() {
 	case reflect.Map:
@@ -122,12 +122,12 @@ func (s *scanner) scanInstance(rows Rows, t reflect.Type) (reflect.Value, error)
 	return reflect.ValueOf(instance), nil
 }
 
-func (s *scanner) scanRow(rows Rows, instance interface{}) error {
+func (s *scanner) scanRow(rows Rows, instance any) error {
 	switch item := instance.(type) {
 	case Scannable:
 		return item.Scan(rows)
 
-	case map[string]interface{}:
+	case map[string]any:
 		return s.scanMap(rows, item)
 
 	default:
@@ -135,7 +135,7 @@ func (s *scanner) scanRow(rows Rows, instance interface{}) error {
 	}
 }
 
-func (s *scanner) scanMap(rows Rows, item map[string]interface{}) error {
+func (s *scanner) scanMap(rows Rows, item map[string]any) error {
 
 	types, values, err := s.scanValues(rows)
 	if err != nil {
@@ -160,14 +160,14 @@ func (s *scanner) scanMap(rows Rows, item map[string]interface{}) error {
 	return nil
 }
 
-func (s *scanner) scanValues(rows Rows) ([]ColumnType, []interface{}, error) {
+func (s *scanner) scanValues(rows Rows) ([]ColumnType, []any, error) {
 
 	types, err := rows.ColumnTypes()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	values := make([]interface{}, len(types))
+	values := make([]any, len(types))
 
 	for i, t := range types {
 		switch t.DatabaseTypeName() {
@@ -193,7 +193,7 @@ func (s *scanner) scanValues(rows Rows) ([]ColumnType, []interface{}, error) {
 	return types, values, nil
 }
 
-func (s *scanner) scanValue(value interface{}, dbTypeName string) (interface{}, error) {
+func (s *scanner) scanValue(value any, dbTypeName string) (any, error) {
 
 	switch v := value.(type) {
 	case sql.NullString:
@@ -234,7 +234,7 @@ func (s *scanner) scanValue(value interface{}, dbTypeName string) (interface{}, 
 	}
 }
 
-func (s *scanner) scanNullTime(t time.Time, dbTypeName string) interface{} {
+func (s *scanner) scanNullTime(t time.Time, dbTypeName string) any {
 	switch dbTypeName {
 	case "DATE":
 		return t.Format(time.DateOnly)
@@ -243,7 +243,7 @@ func (s *scanner) scanNullTime(t time.Time, dbTypeName string) interface{} {
 	}
 }
 
-func (s *scanner) scanRawBytes(value string, dbTypeName string) (interface{}, error) {
+func (s *scanner) scanRawBytes(value string, dbTypeName string) (any, error) {
 	switch dbTypeName {
 	case "VARCHAR", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "CHAR", "STRING", "BPCHAR":
 		return s.scanRawString(value), nil
@@ -254,7 +254,7 @@ func (s *scanner) scanRawBytes(value string, dbTypeName string) (interface{}, er
 	}
 }
 
-func (s *scanner) scanRawString(value string) interface{} {
+func (s *scanner) scanRawString(value string) any {
 	switch value {
 	case "true":
 		return true
@@ -265,13 +265,13 @@ func (s *scanner) scanRawString(value string) interface{} {
 	}
 }
 
-func (s *scanner) scanString(value string, dbTypeName string) (interface{}, error) {
+func (s *scanner) scanString(value string, dbTypeName string) (any, error) {
 	switch dbTypeName {
 	case "JSON":
 		if value == "" {
 			return nil, nil
 		} else {
-			var data interface{}
+			var data any
 			return data, json.Unmarshal([]byte(value), &data)
 		}
 	default:
@@ -279,9 +279,9 @@ func (s *scanner) scanString(value string, dbTypeName string) (interface{}, erro
 	}
 }
 
-func (s *scanner) scanTags(rows Rows, item interface{}) error {
+func (s *scanner) scanTags(rows Rows, item any) error {
 
-	scanned := map[string]interface{}{}
+	scanned := map[string]any{}
 	if err := s.scanMap(rows, scanned); err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func (s *scanner) scanTags(rows Rows, item interface{}) error {
 	return s.assignFields(t, v, scanned)
 }
 
-func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[string]interface{}) error {
+func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[string]any) error {
 
 	if t == reflect.TypeOf(json.RawMessage{}) {
 		data, err := json.Marshal(scanned)
@@ -360,7 +360,7 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 		}
 
 		if ts.Kind() == reflect.Map {
-			subMap, ok := item.(map[string]interface{})
+			subMap, ok := item.(map[string]any)
 			if ok {
 				if err := s.assignFields(tf.Type, vf, subMap); err != nil {
 					return err
@@ -370,7 +370,7 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 		}
 
 		if ts.Kind() == reflect.Slice {
-			subSlice, ok := item.([]interface{})
+			subSlice, ok := item.([]any)
 			if ok {
 				if tf.Type == reflect.TypeOf(json.RawMessage{}) {
 					data, err := json.Marshal(subSlice)
@@ -387,7 +387,7 @@ func (s *scanner) assignFields(t reflect.Type, v reflect.Value, scanned map[stri
 					elemValue := reflect.New(tf.Type.Elem()).Elem()
 					elemType := tf.Type.Elem()
 
-					if subMap, ok := subSlice[j].(map[string]interface{}); ok {
+					if subMap, ok := subSlice[j].(map[string]any); ok {
 						if err := s.assignFields(elemType, elemValue, subMap); err != nil {
 							return err
 						}
