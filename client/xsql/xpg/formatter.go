@@ -20,11 +20,6 @@ func NewFormatter() *formatter {
 type formatter struct{}
 
 func (f *formatter) Format(cmd ex.Command, types map[string]string) (ex.Statement, error) {
-
-	if types == nil {
-		types = map[string]string{}
-	}
-
 	switch strings.ToUpper(cmd.Action) {
 	case "QUERY":
 		return f.FormatQuery(cmd, types), nil

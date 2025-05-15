@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/reverted/ex"
@@ -100,14 +101,21 @@ func WithConnection(connection Connection) opt {
 	}
 }
 
+func WithTypeCacheDuration(duration time.Duration) opt {
+	return func(e *executor) {
+		e.TypeCacheDuration = duration
+	}
+}
+
 func NewExecutor(logger Logger, opts ...opt) *executor {
 
 	executor := &executor{
-		Logger:    logger,
-		Tracer:    noopTracer{},
-		Scanner:   NewScanner(),
-		Formatter: xmysql.NewFormatter(),
-		TypeCache: TypeCache{},
+		Logger:            logger,
+		Tracer:            noopTracer{},
+		Scanner:           NewScanner(),
+		Formatter:         xmysql.NewFormatter(),
+		TypeCache:         TypeCache{},
+		TypeCacheDuration: time.Hour,
 	}
 
 	for _, opt := range opts {
@@ -131,7 +139,8 @@ type executor struct {
 	Scanner
 	Tracer
 
-	TypeCache TypeCache
+	TypeCache         TypeCache
+	TypeCacheDuration time.Duration
 }
 
 func (e *executor) Execute(ctx context.Context, req ex.Request, data any) (bool, error) {
@@ -396,12 +405,12 @@ func (e *executor) execContext(ctx context.Context, tx Tx, stmt ex.Statement) (R
 	return tx.ExecContext(spanCtx, stmt.Stmt, stmt.Args...)
 }
 
-func (e *executor) getColumnTypes(ctx context.Context, tx Tx, tableName string) (TableTypes, error) {
+func (e *executor) getColumnTypes(ctx context.Context, tx Tx, tableName string) (map[string]string, error) {
 	e.Lock()
 	defer e.Unlock()
 
-	if types, ok := e.TypeCache[tableName]; ok && len(types) > 0 {
-		return types, nil
+	if entry, ok := e.TypeCache[tableName]; ok && entry.IsValid(e.TypeCacheDuration) {
+		return entry.Types, nil
 	}
 
 	query := fmt.Sprintf("SELECT * FROM %s LIMIT 0", tableName)
@@ -416,13 +425,16 @@ func (e *executor) getColumnTypes(ctx context.Context, tx Tx, tableName string) 
 		return nil, err
 	}
 
-	columns := TableTypes{}
+	columns := map[string]string{}
 	for _, col := range columnTypes {
 		columns[col.Name()] = col.DatabaseTypeName()
 	}
 
 	if len(columns) > 0 {
-		e.TypeCache[tableName] = columns
+		e.TypeCache[tableName] = TableEntry{
+			Types:     columns,
+			UpdatedAt: time.Now(),
+		}
 	}
 
 	return columns, nil
@@ -445,6 +457,13 @@ func (t noopTracer) ExtractSpan(r *http.Request, name string) (ex.Span, context.
 	return noopSpan{}, r.Context()
 }
 
-type TypeCache map[string]TableTypes
+type TypeCache map[string]TableEntry
 
-type TableTypes map[string]string
+type TableEntry struct {
+	Types     map[string]string
+	UpdatedAt time.Time
+}
+
+func (e TableEntry) IsValid(duration time.Duration) bool {
+	return time.Since(e.UpdatedAt) < duration
+}

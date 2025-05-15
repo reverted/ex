@@ -33,6 +33,7 @@ var _ = Describe("Executor", func() {
 		mockScanner    *mocks.MockScanner
 		mockTx         *mocks.MockTx
 		mockRows       *mocks.MockRows
+		mockTypeRows   *mocks.MockRows
 		mockResult     *mocks.MockResult
 
 		ctx      context.Context
@@ -48,6 +49,7 @@ var _ = Describe("Executor", func() {
 		mockScanner = mocks.NewMockScanner(mockCtrl)
 		mockTx = mocks.NewMockTx(mockCtrl)
 		mockRows = mocks.NewMockRows(mockCtrl)
+		mockTypeRows = mocks.NewMockRows(mockCtrl)
 		mockResult = mocks.NewMockResult(mockCtrl)
 
 		ctx = context.Background()
@@ -57,6 +59,7 @@ var _ = Describe("Executor", func() {
 			xsql.WithFormatter(mockFormatter),
 			xsql.WithScanner(mockScanner),
 			xsql.WithTracer(noopTracer{}),
+			xsql.WithTypeCacheDuration(0),
 		)
 	})
 
@@ -87,27 +90,16 @@ var _ = Describe("Executor", func() {
 				mockConnection.EXPECT().Begin().Return(mockTx, nil)
 			})
 
-			Context("when formatting the request fails", func() {
+			Context("when querying column types succeeeds", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
+					mockTx.EXPECT().QueryContext(ctx, "SELECT * FROM resources LIMIT 0").Return(mockTypeRows, nil)
+					mockTypeRows.EXPECT().ColumnTypes().Return(nil, nil)
+					mockTypeRows.EXPECT().Close().Return(nil)
 				})
 
-				It("errors", func() {
-					Expect(err).To(HaveOccurred())
-				})
-			})
-
-			Context("when formatting the request succeeds", func() {
-				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{
-						Stmt: "some-stmt",
-						Args: []interface{}{"some-arg"},
-					}, nil)
-				})
-
-				Context("when executing the request fails", func() {
+				Context("when formatting the request fails", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
+						mockFormatter.EXPECT().Format(ex.Query("resources"), gomock.Any()).Return(ex.Statement{}, errors.New("nope"))
 					})
 
 					It("errors", func() {
@@ -115,15 +107,17 @@ var _ = Describe("Executor", func() {
 					})
 				})
 
-				Context("when executing the request succeeds", func() {
+				Context("when formatting the request succeeds", func() {
 					BeforeEach(func() {
-						mockRows.EXPECT().Close().Return(nil)
-						mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
+						mockFormatter.EXPECT().Format(ex.Query("resources"), gomock.Any()).Return(ex.Statement{
+							Stmt: "some-stmt",
+							Args: []interface{}{"some-arg"},
+						}, nil)
 					})
 
-					Context("when scanning the rows fails", func() {
+					Context("when executing the request fails", func() {
 						BeforeEach(func() {
-							mockScanner.EXPECT().Scan(mockRows, data).Return(errors.New("nope"))
+							mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 						})
 
 						It("errors", func() {
@@ -131,14 +125,15 @@ var _ = Describe("Executor", func() {
 						})
 					})
 
-					Context("when scanning the rows succeeds", func() {
+					Context("when executing the request succeeds", func() {
 						BeforeEach(func() {
-							mockScanner.EXPECT().Scan(mockRows, data).Return(nil)
+							mockRows.EXPECT().Close().Return(nil)
+							mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 						})
 
-						Context("when commiting the tx fails", func() {
+						Context("when scanning the rows fails", func() {
 							BeforeEach(func() {
-								mockTx.EXPECT().Commit().Return(errors.New("nope"))
+								mockScanner.EXPECT().Scan(mockRows, data).Return(errors.New("nope"))
 							})
 
 							It("errors", func() {
@@ -146,13 +141,29 @@ var _ = Describe("Executor", func() {
 							})
 						})
 
-						Context("when commiting the tx succeeds", func() {
+						Context("when scanning the rows succeeds", func() {
 							BeforeEach(func() {
-								mockTx.EXPECT().Commit().Return(nil)
+								mockScanner.EXPECT().Scan(mockRows, data).Return(nil)
 							})
 
-							It("succeeds", func() {
-								Expect(err).NotTo(HaveOccurred())
+							Context("when commiting the tx fails", func() {
+								BeforeEach(func() {
+									mockTx.EXPECT().Commit().Return(errors.New("nope"))
+								})
+
+								It("errors", func() {
+									Expect(err).To(HaveOccurred())
+								})
+							})
+
+							Context("when commiting the tx succeeds", func() {
+								BeforeEach(func() {
+									mockTx.EXPECT().Commit().Return(nil)
+								})
+
+								It("succeeds", func() {
+									Expect(err).NotTo(HaveOccurred())
+								})
 							})
 						})
 					})
@@ -182,205 +193,16 @@ var _ = Describe("Executor", func() {
 				mockConnection.EXPECT().Begin().Return(mockTx, nil)
 			})
 
-			Context("when formatting the request fails", func() {
+			Context("when querying column types succeeeds", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Delete("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
+					mockTx.EXPECT().QueryContext(ctx, "SELECT * FROM resources LIMIT 0").Return(mockTypeRows, nil)
+					mockTypeRows.EXPECT().ColumnTypes().Return(nil, nil)
+					mockTypeRows.EXPECT().Close().Return(nil)
 				})
 
-				It("errors", func() {
-					Expect(err).To(HaveOccurred())
-				})
-			})
-
-			Context("when formatting the request succeeds", func() {
-				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Delete("resources"), nil).Return(ex.Statement{
-						Stmt: "some-stmt",
-						Args: []interface{}{"some-arg"},
-					}, nil)
-				})
-
-				Context("when the data result is nil", func() {
+				Context("when formatting the request fails", func() {
 					BeforeEach(func() {
-						data = nil
-					})
-
-					Context("when executing the request fails", func() {
-						BeforeEach(func() {
-							mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
-						})
-
-						It("errors", func() {
-							Expect(err).To(HaveOccurred())
-						})
-					})
-
-					Context("when executing the request succeeds", func() {
-						BeforeEach(func() {
-							mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
-						})
-
-						Context("when commiting the tx fails", func() {
-							BeforeEach(func() {
-								mockTx.EXPECT().Commit().Return(errors.New("nope"))
-							})
-
-							It("errors", func() {
-								Expect(err).To(HaveOccurred())
-							})
-						})
-
-						Context("when commiting the tx succeeds", func() {
-							BeforeEach(func() {
-								mockTx.EXPECT().Commit().Return(nil)
-							})
-
-							It("succeeds", func() {
-								Expect(err).NotTo(HaveOccurred())
-							})
-						})
-					})
-				})
-
-				Context("when the data result is NOT nil", func() {
-					BeforeEach(func() {
-						data = map[string]interface{}{}
-					})
-
-					Context("when formatting the query fails", func() {
-						BeforeEach(func() {
-							mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
-						})
-
-						It("errors", func() {
-							Expect(err).To(HaveOccurred())
-						})
-					})
-
-					Context("when formatting the query succeeds", func() {
-						BeforeEach(func() {
-							mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{
-								Stmt: "some-stmt",
-								Args: []interface{}{"some-arg"},
-							}, nil)
-						})
-
-						Context("when executing the query fails", func() {
-							BeforeEach(func() {
-								mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
-							})
-
-							It("errors", func() {
-								Expect(err).To(HaveOccurred())
-							})
-						})
-
-						Context("when executing the query succeeds", func() {
-							BeforeEach(func() {
-								mockRows.EXPECT().Close().Return(nil)
-								mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
-							})
-
-							Context("when scanning the rows fails", func() {
-								BeforeEach(func() {
-									mockScanner.EXPECT().Scan(mockRows, data).Return(errors.New("nope"))
-								})
-
-								It("errors", func() {
-									Expect(err).To(HaveOccurred())
-								})
-							})
-
-							Context("when scanning the rows succeeds", func() {
-								BeforeEach(func() {
-									mockScanner.EXPECT().Scan(mockRows, data).Return(nil)
-								})
-
-								Context("when executing the request fails", func() {
-									BeforeEach(func() {
-										mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
-									})
-
-									It("errors", func() {
-										Expect(err).To(HaveOccurred())
-									})
-								})
-
-								Context("when executing the request succeeds", func() {
-									BeforeEach(func() {
-										mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
-									})
-
-									Context("when commiting the tx fails", func() {
-										BeforeEach(func() {
-											mockTx.EXPECT().Commit().Return(errors.New("nope"))
-										})
-
-										It("errors", func() {
-											Expect(err).To(HaveOccurred())
-										})
-									})
-
-									Context("when commiting the tx succeeds", func() {
-										BeforeEach(func() {
-											mockTx.EXPECT().Commit().Return(nil)
-										})
-
-										It("succeeds", func() {
-											Expect(err).NotTo(HaveOccurred())
-										})
-									})
-								})
-							})
-						})
-					})
-				})
-			})
-		})
-	})
-
-	Describe("INSERT", func() {
-		BeforeEach(func() {
-			req = ex.Insert("resources")
-		})
-
-		Context("when beginning a tx fails", func() {
-			BeforeEach(func() {
-				mockConnection.EXPECT().Begin().Return(nil, errors.New("nope"))
-			})
-
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		Context("when beginning a tx succeeds", func() {
-			BeforeEach(func() {
-				mockTx.EXPECT().Rollback().Return(nil)
-				mockConnection.EXPECT().Begin().Return(mockTx, nil)
-			})
-
-			Context("when formatting the request fails", func() {
-				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Insert("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
-				})
-
-				It("errors", func() {
-					Expect(err).To(HaveOccurred())
-				})
-			})
-
-			Context("when formatting the request succeeds", func() {
-				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Insert("resources"), nil).Return(ex.Statement{
-						Stmt: "some-stmt",
-						Args: []interface{}{"some-arg"},
-					}, nil)
-				})
-
-				Context("when executing the request fails", func() {
-					BeforeEach(func() {
-						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
+						mockFormatter.EXPECT().Format(ex.Delete("resources"), gomock.Any()).Return(ex.Statement{}, errors.New("nope"))
 					})
 
 					It("errors", func() {
@@ -388,9 +210,12 @@ var _ = Describe("Executor", func() {
 					})
 				})
 
-				Context("when executing the request succeeds", func() {
+				Context("when formatting the request succeeds", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
+						mockFormatter.EXPECT().Format(ex.Delete("resources"), gomock.Any()).Return(ex.Statement{
+							Stmt: "some-stmt",
+							Args: []interface{}{"some-arg"},
+						}, nil)
 					})
 
 					Context("when the data result is nil", func() {
@@ -398,9 +223,9 @@ var _ = Describe("Executor", func() {
 							data = nil
 						})
 
-						Context("when commiting the tx fails", func() {
+						Context("when executing the request fails", func() {
 							BeforeEach(func() {
-								mockTx.EXPECT().Commit().Return(errors.New("nope"))
+								mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 							})
 
 							It("errors", func() {
@@ -408,13 +233,29 @@ var _ = Describe("Executor", func() {
 							})
 						})
 
-						Context("when commiting the tx succeeds", func() {
+						Context("when executing the request succeeds", func() {
 							BeforeEach(func() {
-								mockTx.EXPECT().Commit().Return(nil)
+								mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
 							})
 
-							It("succeeds", func() {
-								Expect(err).NotTo(HaveOccurred())
+							Context("when commiting the tx fails", func() {
+								BeforeEach(func() {
+									mockTx.EXPECT().Commit().Return(errors.New("nope"))
+								})
+
+								It("errors", func() {
+									Expect(err).To(HaveOccurred())
+								})
+							})
+
+							Context("when commiting the tx succeeds", func() {
+								BeforeEach(func() {
+									mockTx.EXPECT().Commit().Return(nil)
+								})
+
+								It("succeeds", func() {
+									Expect(err).NotTo(HaveOccurred())
+								})
 							})
 						})
 					})
@@ -424,26 +265,16 @@ var _ = Describe("Executor", func() {
 							data = map[string]interface{}{}
 						})
 
-						Context("when retrieving the id fails", func() {
+						Context("when querying column types succeeeds", func() {
 							BeforeEach(func() {
-								mockResult.EXPECT().LastInsertId().Return(int64(0), errors.New("nope"))
-								mockScanner.EXPECT().Scan(gomock.Any(), data).Return(nil)
-								mockTx.EXPECT().Commit().Return(nil)
-							})
-
-							It("succeeds after scanning emptyRows", func() {
-								Expect(err).NotTo(HaveOccurred())
-							})
-						})
-
-						Context("when retrieving the id succeeds", func() {
-							BeforeEach(func() {
-								mockResult.EXPECT().LastInsertId().Return(int64(10), nil)
+								mockTx.EXPECT().QueryContext(ctx, "SELECT * FROM resources LIMIT 0").Return(mockTypeRows, nil)
+								mockTypeRows.EXPECT().ColumnTypes().Return(nil, nil)
+								mockTypeRows.EXPECT().Close().Return(nil)
 							})
 
 							Context("when formatting the query fails", func() {
 								BeforeEach(func() {
-									mockFormatter.EXPECT().Format(ex.Query("resources", ex.Where{"id": int64(10)}), nil).Return(ex.Statement{}, errors.New("nope"))
+									mockFormatter.EXPECT().Format(ex.Query("resources"), gomock.Any()).Return(ex.Statement{}, errors.New("nope"))
 								})
 
 								It("errors", func() {
@@ -453,7 +284,7 @@ var _ = Describe("Executor", func() {
 
 							Context("when formatting the query succeeds", func() {
 								BeforeEach(func() {
-									mockFormatter.EXPECT().Format(ex.Query("resources", ex.Where{"id": int64(10)}), nil).Return(ex.Statement{
+									mockFormatter.EXPECT().Format(ex.Query("resources"), gomock.Any()).Return(ex.Statement{
 										Stmt: "some-stmt",
 										Args: []interface{}{"some-arg"},
 									}, nil)
@@ -490,9 +321,9 @@ var _ = Describe("Executor", func() {
 											mockScanner.EXPECT().Scan(mockRows, data).Return(nil)
 										})
 
-										Context("when commiting the tx fails", func() {
+										Context("when executing the request fails", func() {
 											BeforeEach(func() {
-												mockTx.EXPECT().Commit().Return(errors.New("nope"))
+												mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 											})
 
 											It("errors", func() {
@@ -500,13 +331,225 @@ var _ = Describe("Executor", func() {
 											})
 										})
 
-										Context("when commiting the tx succeeds", func() {
+										Context("when executing the request succeeds", func() {
 											BeforeEach(func() {
-												mockTx.EXPECT().Commit().Return(nil)
+												mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
 											})
 
-											It("succeeds", func() {
-												Expect(err).NotTo(HaveOccurred())
+											Context("when commiting the tx fails", func() {
+												BeforeEach(func() {
+													mockTx.EXPECT().Commit().Return(errors.New("nope"))
+												})
+
+												It("errors", func() {
+													Expect(err).To(HaveOccurred())
+												})
+											})
+
+											Context("when commiting the tx succeeds", func() {
+												BeforeEach(func() {
+													mockTx.EXPECT().Commit().Return(nil)
+												})
+
+												It("succeeds", func() {
+													Expect(err).NotTo(HaveOccurred())
+												})
+											})
+										})
+									})
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
+
+	Describe("INSERT", func() {
+		BeforeEach(func() {
+			req = ex.Insert("resources")
+		})
+
+		Context("when beginning a tx fails", func() {
+			BeforeEach(func() {
+				mockConnection.EXPECT().Begin().Return(nil, errors.New("nope"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when beginning a tx succeeds", func() {
+			BeforeEach(func() {
+				mockTx.EXPECT().Rollback().Return(nil)
+				mockConnection.EXPECT().Begin().Return(mockTx, nil)
+			})
+
+			Context("when querying column types succeeeds", func() {
+				BeforeEach(func() {
+					mockTx.EXPECT().QueryContext(ctx, "SELECT * FROM resources LIMIT 0").Return(mockTypeRows, nil)
+					mockTypeRows.EXPECT().ColumnTypes().Return(nil, nil)
+					mockTypeRows.EXPECT().Close().Return(nil)
+				})
+
+				Context("when formatting the request fails", func() {
+					BeforeEach(func() {
+						mockFormatter.EXPECT().Format(ex.Insert("resources"), gomock.Any()).Return(ex.Statement{}, errors.New("nope"))
+					})
+
+					It("errors", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				Context("when formatting the request succeeds", func() {
+					BeforeEach(func() {
+						mockFormatter.EXPECT().Format(ex.Insert("resources"), gomock.Any()).Return(ex.Statement{
+							Stmt: "some-stmt",
+							Args: []interface{}{"some-arg"},
+						}, nil)
+					})
+
+					Context("when executing the request fails", func() {
+						BeforeEach(func() {
+							mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
+						})
+
+						It("errors", func() {
+							Expect(err).To(HaveOccurred())
+						})
+					})
+
+					Context("when executing the request succeeds", func() {
+						BeforeEach(func() {
+							mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
+						})
+
+						Context("when the data result is nil", func() {
+							BeforeEach(func() {
+								data = nil
+							})
+
+							Context("when commiting the tx fails", func() {
+								BeforeEach(func() {
+									mockTx.EXPECT().Commit().Return(errors.New("nope"))
+								})
+
+								It("errors", func() {
+									Expect(err).To(HaveOccurred())
+								})
+							})
+
+							Context("when commiting the tx succeeds", func() {
+								BeforeEach(func() {
+									mockTx.EXPECT().Commit().Return(nil)
+								})
+
+								It("succeeds", func() {
+									Expect(err).NotTo(HaveOccurred())
+								})
+							})
+						})
+
+						Context("when the data result is NOT nil", func() {
+							BeforeEach(func() {
+								data = map[string]interface{}{}
+							})
+
+							Context("when retrieving the id fails", func() {
+								BeforeEach(func() {
+									mockResult.EXPECT().LastInsertId().Return(int64(0), errors.New("nope"))
+									mockScanner.EXPECT().Scan(gomock.Any(), data).Return(nil)
+									mockTx.EXPECT().Commit().Return(nil)
+								})
+
+								It("succeeds after scanning emptyRows", func() {
+									Expect(err).NotTo(HaveOccurred())
+								})
+							})
+
+							Context("when retrieving the id succeeds", func() {
+								BeforeEach(func() {
+									mockResult.EXPECT().LastInsertId().Return(int64(10), nil)
+								})
+
+								Context("when querying column types succeeeds", func() {
+									BeforeEach(func() {
+										mockTx.EXPECT().QueryContext(ctx, "SELECT * FROM resources LIMIT 0").Return(mockTypeRows, nil)
+										mockTypeRows.EXPECT().ColumnTypes().Return(nil, nil)
+										mockTypeRows.EXPECT().Close().Return(nil)
+									})
+
+									Context("when formatting the query fails", func() {
+										BeforeEach(func() {
+											mockFormatter.EXPECT().Format(ex.Query("resources", ex.Where{"id": int64(10)}), gomock.Any()).Return(ex.Statement{}, errors.New("nope"))
+										})
+
+										It("errors", func() {
+											Expect(err).To(HaveOccurred())
+										})
+									})
+
+									Context("when formatting the query succeeds", func() {
+										BeforeEach(func() {
+											mockFormatter.EXPECT().Format(ex.Query("resources", ex.Where{"id": int64(10)}), gomock.Any()).Return(ex.Statement{
+												Stmt: "some-stmt",
+												Args: []interface{}{"some-arg"},
+											}, nil)
+										})
+
+										Context("when executing the query fails", func() {
+											BeforeEach(func() {
+												mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
+											})
+
+											It("errors", func() {
+												Expect(err).To(HaveOccurred())
+											})
+										})
+
+										Context("when executing the query succeeds", func() {
+											BeforeEach(func() {
+												mockRows.EXPECT().Close().Return(nil)
+												mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
+											})
+
+											Context("when scanning the rows fails", func() {
+												BeforeEach(func() {
+													mockScanner.EXPECT().Scan(mockRows, data).Return(errors.New("nope"))
+												})
+
+												It("errors", func() {
+													Expect(err).To(HaveOccurred())
+												})
+											})
+
+											Context("when scanning the rows succeeds", func() {
+												BeforeEach(func() {
+													mockScanner.EXPECT().Scan(mockRows, data).Return(nil)
+												})
+
+												Context("when commiting the tx fails", func() {
+													BeforeEach(func() {
+														mockTx.EXPECT().Commit().Return(errors.New("nope"))
+													})
+
+													It("errors", func() {
+														Expect(err).To(HaveOccurred())
+													})
+												})
+
+												Context("when commiting the tx succeeds", func() {
+													BeforeEach(func() {
+														mockTx.EXPECT().Commit().Return(nil)
+													})
+
+													It("succeeds", func() {
+														Expect(err).NotTo(HaveOccurred())
+													})
+												})
 											})
 										})
 									})
@@ -540,27 +583,16 @@ var _ = Describe("Executor", func() {
 				mockConnection.EXPECT().Begin().Return(mockTx, nil)
 			})
 
-			Context("when formatting the request fails", func() {
+			Context("when querying column types succeeeds", func() {
 				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Update("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
+					mockTx.EXPECT().QueryContext(ctx, "SELECT * FROM resources LIMIT 0").Return(mockTypeRows, nil)
+					mockTypeRows.EXPECT().ColumnTypes().Return(nil, nil)
+					mockTypeRows.EXPECT().Close().Return(nil)
 				})
 
-				It("errors", func() {
-					Expect(err).To(HaveOccurred())
-				})
-			})
-
-			Context("when formatting the request succeeds", func() {
-				BeforeEach(func() {
-					mockFormatter.EXPECT().Format(ex.Update("resources"), nil).Return(ex.Statement{
-						Stmt: "some-stmt",
-						Args: []interface{}{"some-arg"},
-					}, nil)
-				})
-
-				Context("when executing the request fails", func() {
+				Context("when formatting the request fails", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
+						mockFormatter.EXPECT().Format(ex.Update("resources"), gomock.Any()).Return(ex.Statement{}, errors.New("nope"))
 					})
 
 					It("errors", func() {
@@ -568,63 +600,37 @@ var _ = Describe("Executor", func() {
 					})
 				})
 
-				Context("when executing the request succeeds", func() {
+				Context("when formatting the request succeeds", func() {
 					BeforeEach(func() {
-						mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
+						mockFormatter.EXPECT().Format(ex.Update("resources"), gomock.Any()).Return(ex.Statement{
+							Stmt: "some-stmt",
+							Args: []interface{}{"some-arg"},
+						}, nil)
 					})
 
-					Context("when the data result is nil", func() {
+					Context("when executing the request fails", func() {
 						BeforeEach(func() {
-							data = nil
+							mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 						})
 
-						Context("when commiting the tx fails", func() {
-							BeforeEach(func() {
-								mockTx.EXPECT().Commit().Return(errors.New("nope"))
-							})
-
-							It("errors", func() {
-								Expect(err).To(HaveOccurred())
-							})
-						})
-
-						Context("when commiting the tx succeeds", func() {
-							BeforeEach(func() {
-								mockTx.EXPECT().Commit().Return(nil)
-							})
-
-							It("succeeds", func() {
-								Expect(err).NotTo(HaveOccurred())
-							})
+						It("errors", func() {
+							Expect(err).To(HaveOccurred())
 						})
 					})
 
-					Context("when the data result is NOT nil", func() {
+					Context("when executing the request succeeds", func() {
 						BeforeEach(func() {
-							data = map[string]interface{}{}
+							mockTx.EXPECT().ExecContext(ctx, "some-stmt", "some-arg").Return(mockResult, nil)
 						})
 
-						Context("when formatting the query fails", func() {
+						Context("when the data result is nil", func() {
 							BeforeEach(func() {
-								mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{}, errors.New("nope"))
+								data = nil
 							})
 
-							It("errors", func() {
-								Expect(err).To(HaveOccurred())
-							})
-						})
-
-						Context("when formatting the query succeeds", func() {
-							BeforeEach(func() {
-								mockFormatter.EXPECT().Format(ex.Query("resources"), nil).Return(ex.Statement{
-									Stmt: "some-stmt",
-									Args: []interface{}{"some-arg"},
-								}, nil)
-							})
-
-							Context("when executing the query fails", func() {
+							Context("when commiting the tx fails", func() {
 								BeforeEach(func() {
-									mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
+									mockTx.EXPECT().Commit().Return(errors.New("nope"))
 								})
 
 								It("errors", func() {
@@ -632,15 +638,32 @@ var _ = Describe("Executor", func() {
 								})
 							})
 
-							Context("when executing the query succeeds", func() {
+							Context("when commiting the tx succeeds", func() {
 								BeforeEach(func() {
-									mockRows.EXPECT().Close().Return(nil)
-									mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
+									mockTx.EXPECT().Commit().Return(nil)
 								})
 
-								Context("when scanning the rows fails", func() {
+								It("succeeds", func() {
+									Expect(err).NotTo(HaveOccurred())
+								})
+							})
+						})
+
+						Context("when the data result is NOT nil", func() {
+							BeforeEach(func() {
+								data = map[string]interface{}{}
+							})
+
+							Context("when querying column types succeeeds", func() {
+								BeforeEach(func() {
+									mockTx.EXPECT().QueryContext(ctx, "SELECT * FROM resources LIMIT 0").Return(mockTypeRows, nil)
+									mockTypeRows.EXPECT().ColumnTypes().Return(nil, nil)
+									mockTypeRows.EXPECT().Close().Return(nil)
+								})
+
+								Context("when formatting the query fails", func() {
 									BeforeEach(func() {
-										mockScanner.EXPECT().Scan(mockRows, data).Return(errors.New("nope"))
+										mockFormatter.EXPECT().Format(ex.Query("resources"), gomock.Any()).Return(ex.Statement{}, errors.New("nope"))
 									})
 
 									It("errors", func() {
@@ -648,14 +671,17 @@ var _ = Describe("Executor", func() {
 									})
 								})
 
-								Context("when scanning the rows succeeds", func() {
+								Context("when formatting the query succeeds", func() {
 									BeforeEach(func() {
-										mockScanner.EXPECT().Scan(mockRows, data).Return(nil)
+										mockFormatter.EXPECT().Format(ex.Query("resources"), gomock.Any()).Return(ex.Statement{
+											Stmt: "some-stmt",
+											Args: []interface{}{"some-arg"},
+										}, nil)
 									})
 
-									Context("when commiting the tx fails", func() {
+									Context("when executing the query fails", func() {
 										BeforeEach(func() {
-											mockTx.EXPECT().Commit().Return(errors.New("nope"))
+											mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(nil, errors.New("nope"))
 										})
 
 										It("errors", func() {
@@ -663,13 +689,46 @@ var _ = Describe("Executor", func() {
 										})
 									})
 
-									Context("when commiting the tx succeeds", func() {
+									Context("when executing the query succeeds", func() {
 										BeforeEach(func() {
-											mockTx.EXPECT().Commit().Return(nil)
+											mockRows.EXPECT().Close().Return(nil)
+											mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
 										})
 
-										It("succeeds", func() {
-											Expect(err).NotTo(HaveOccurred())
+										Context("when scanning the rows fails", func() {
+											BeforeEach(func() {
+												mockScanner.EXPECT().Scan(mockRows, data).Return(errors.New("nope"))
+											})
+
+											It("errors", func() {
+												Expect(err).To(HaveOccurred())
+											})
+										})
+
+										Context("when scanning the rows succeeds", func() {
+											BeforeEach(func() {
+												mockScanner.EXPECT().Scan(mockRows, data).Return(nil)
+											})
+
+											Context("when commiting the tx fails", func() {
+												BeforeEach(func() {
+													mockTx.EXPECT().Commit().Return(errors.New("nope"))
+												})
+
+												It("errors", func() {
+													Expect(err).To(HaveOccurred())
+												})
+											})
+
+											Context("when commiting the tx succeeds", func() {
+												BeforeEach(func() {
+													mockTx.EXPECT().Commit().Return(nil)
+												})
+
+												It("succeeds", func() {
+													Expect(err).NotTo(HaveOccurred())
+												})
+											})
 										})
 									})
 								})
