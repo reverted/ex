@@ -1,6 +1,6 @@
 package ex
 
-func Query(resource string, opts ...opt) Command {
+func Query(resource string, opts ...Opt) Command {
 	return cmd(
 		"QUERY",
 		resource,
@@ -8,7 +8,7 @@ func Query(resource string, opts ...opt) Command {
 	)
 }
 
-func Delete(resource string, opts ...opt) Command {
+func Delete(resource string, opts ...Opt) Command {
 	return cmd(
 		"DELETE",
 		resource,
@@ -16,7 +16,7 @@ func Delete(resource string, opts ...opt) Command {
 	)
 }
 
-func Insert(resource string, opts ...opt) Command {
+func Insert(resource string, opts ...Opt) Command {
 	return cmd(
 		"INSERT",
 		resource,
@@ -24,7 +24,7 @@ func Insert(resource string, opts ...opt) Command {
 	)
 }
 
-func Update(resource string, opts ...opt) Command {
+func Update(resource string, opts ...Opt) Command {
 	return cmd(
 		"UPDATE",
 		resource,
@@ -51,11 +51,11 @@ func Bulk(reqs ...Request) Batch {
 	}
 }
 
-type opt interface {
+type Opt interface {
 	opt(cmd *Command)
 }
 
-func cmd(action, resource string, opts ...opt) Command {
+func cmd(action, resource string, opts ...Opt) Command {
 	cmd := Command{
 		Action:           action,
 		Resource:         resource,
@@ -86,7 +86,7 @@ func (v Values) opt(cmd *Command) {
 	cmd.Values = v
 }
 
-func Columns(columns ...string) opt {
+func Columns(columns ...string) Opt {
 	return ColumnConfig(columns)
 }
 
@@ -96,11 +96,11 @@ func (c ColumnConfig) opt(cmd *Command) {
 	cmd.ColumnConfig = c
 }
 
-func Group(grouping ...string) opt {
+func Group(grouping ...string) Opt {
 	return GroupConfig(grouping)
 }
 
-func GroupBy(grouping ...string) opt {
+func GroupBy(grouping ...string) Opt {
 	return GroupConfig(grouping)
 }
 
@@ -110,11 +110,11 @@ func (c GroupConfig) opt(cmd *Command) {
 	cmd.GroupConfig = c
 }
 
-func Order(ordering ...string) opt {
+func Order(ordering ...string) Opt {
 	return OrderConfig(ordering)
 }
 
-func OrderBy(ordering ...string) opt {
+func OrderBy(ordering ...string) Opt {
 	return OrderConfig(ordering)
 }
 
@@ -124,7 +124,7 @@ func (c OrderConfig) opt(cmd *Command) {
 	cmd.OrderConfig = c
 }
 
-func Limit(limit int) opt {
+func Limit(limit int) Opt {
 	return LimitConfig(limit)
 }
 
@@ -134,7 +134,7 @@ func (c LimitConfig) opt(cmd *Command) {
 	cmd.LimitConfig = c
 }
 
-func Offset(offset int) opt {
+func Offset(offset int) Opt {
 	return OffsetConfig(offset)
 }
 
@@ -164,19 +164,19 @@ func (o OnConflictConfig) opt(cmd *Command) {
 	}
 }
 
-func OnConflictUpdate(columns ...string) opt {
+func OnConflictUpdate(columns ...string) Opt {
 	return OnConflictConfig{Update: columns}
 }
 
-func OnConflictConstraint(constraint ...string) opt {
+func OnConflictConstraint(constraint ...string) Opt {
 	return OnConflictConfig{Constraint: constraint}
 }
 
-func OnConflictIgnore(ignore string) opt {
+func OnConflictIgnore(ignore string) Opt {
 	return OnConflictConfig{Ignore: ignore}
 }
 
-func OnConflictError(err string) opt {
+func OnConflictError(err string) Opt {
 	return OnConflictConfig{Error: err}
 }
 
