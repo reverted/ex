@@ -108,7 +108,7 @@ func (e *executor) exec(ctx context.Context, r *http.Request, data any) (bool, e
 
 	case resp.StatusCode >= 400:
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return false, fmt.Errorf("client error: [%v] %s", resp.StatusCode, string(bodyBytes))
+		return resp.StatusCode == 429, fmt.Errorf("client error: [%v] %s", resp.StatusCode, string(bodyBytes))
 
 	case data != nil:
 		return false, json.NewDecoder(resp.Body).Decode(data)
