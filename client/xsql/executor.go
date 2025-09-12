@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -17,31 +16,16 @@ import (
 	"github.com/reverted/ex/client/xsql/xpg"
 )
 
-var (
-	jsonPathParts = []string{
-		`^`,
-		`(\w+)`, // Base column (required)
-		`(?:`,
-		`(?:->(?:'\w+'|\w+|"\w+"))+`,  // One or more standard segments
-		`(?:->>(?:'\w+'|\w+|"\w+"))?`, // Optional final text segment
-		`|`,
-		`->>(?:'\w+'|\w+|"\w+")`, // OR one final text segment
-		`)`,
-		`$`,
-	}
-
-	jsonPathRegexp = regexp.MustCompile(strings.Join(jsonPathParts, ""))
-	resourceRegexp = regexp.MustCompile(`^\w+$`)
-	aliasRegex     = regexp.MustCompile(`(?i)^(.*)\s+AS\s+(?:\w+)$`)
-	randomRegexp   = regexp.MustCompile(`(?i)^RANDOM\(\)$`)
-)
-
 type Logger interface {
 	Infof(string, ...any)
 }
 
 type Tracer interface {
 	StartSpan(context.Context, string, ...ex.SpanTag) (ex.Span, context.Context)
+}
+
+type Validator interface {
+	Validate(ex.Command, map[string]string) error
 }
 
 type Formatter interface {
@@ -115,6 +99,12 @@ func WithTracer(tracer Tracer) opt {
 	}
 }
 
+func WithValidator(validator Validator) opt {
+	return func(e *executor) {
+		e.Validator = validator
+	}
+}
+
 func WithConnection(connection Connection) opt {
 	return func(e *executor) {
 		e.Connection = connection
@@ -127,32 +117,16 @@ func WithTypeCacheDuration(duration time.Duration) opt {
 	}
 }
 
-func WithPermittedResourcePattern(pattern string) opt {
-	return func(e *executor) {
-		e.ResourcePattern = regexp.MustCompile(pattern)
-	}
-}
-
-func WithPermittedColumnPattern(pattern string) opt {
-	return func(e *executor) {
-		e.ColumnPatterns = append(e.ColumnPatterns, regexp.MustCompile(pattern))
-	}
-}
-
 func NewExecutor(logger Logger, opts ...opt) *executor {
 
 	executor := &executor{
 		Logger:            logger,
 		Tracer:            noopTracer{},
 		Scanner:           NewScanner(),
+		Validator:         NewValidator(logger),
 		Formatter:         xmysql.NewFormatter(),
 		TypeCache:         TypeCache{},
 		TypeCacheDuration: time.Hour,
-		ResourcePattern:   resourceRegexp,
-		ColumnPatterns: []*regexp.Regexp{
-			randomRegexp,
-			jsonPathRegexp,
-		},
 	}
 
 	for _, opt := range opts {
@@ -171,16 +145,14 @@ type executor struct {
 	sync.Mutex
 
 	Logger
-	Formatter
-	Connection
-	Scanner
 	Tracer
+	Scanner
+	Formatter
+	Validator
+	Connection
 
 	TypeCache         TypeCache
 	TypeCacheDuration time.Duration
-
-	ResourcePattern *regexp.Regexp
-	ColumnPatterns  []*regexp.Regexp
 }
 
 func (e *executor) Execute(ctx context.Context, req ex.Request, data any) (bool, error) {
@@ -233,16 +205,12 @@ func (e *executor) executeTx(ctx context.Context, tx Tx, req ex.Request, data an
 
 func (e *executor) cmd(ctx context.Context, tx Tx, cmd ex.Command, data any) error {
 
-	if !e.ResourcePattern.MatchString(cmd.Resource) {
-		return fmt.Errorf("invalid resource: %s", cmd.Resource)
-	}
-
 	cols, err := e.getColumnTypes(ctx, tx, cmd.Resource)
 	if err != nil {
 		return err
 	}
 
-	if err := e.validate(cmd, cols); err != nil {
+	if err := e.Validator.Validate(cmd, cols); err != nil {
 		return fmt.Errorf("invalid command: %w", err)
 	}
 
@@ -262,130 +230,6 @@ func (e *executor) cmd(ctx context.Context, tx Tx, cmd ex.Command, data any) err
 	default:
 		return errors.New("unsupported cmd")
 	}
-}
-
-func (e *executor) validate(cmd ex.Command, cols map[string]string) error {
-
-	for _, column := range cmd.ColumnConfig {
-		if !e.isValidColumn(cols, column) {
-			return fmt.Errorf("invalid select column: %s", column)
-		}
-	}
-
-	for column := range cmd.Where {
-		if !e.isValidColumn(cols, column) {
-			return fmt.Errorf("invalid where column: %s", column)
-		}
-	}
-
-	for column := range cmd.Values {
-		if !e.isValidColumn(cols, column) {
-			return fmt.Errorf("invalid value column: %s", column)
-		}
-	}
-
-	for _, column := range cmd.GroupConfig {
-		if !e.isValidColumn(cols, column) {
-			return fmt.Errorf("invalid group column: %s", column)
-		}
-	}
-
-	for _, column := range cmd.OrderConfig {
-		if !e.isValidOrderConfig(cols, column) {
-			return fmt.Errorf("invalid order column: %s", column)
-		}
-	}
-
-	for _, column := range cmd.OnConflictConfig.Constraint {
-		if !e.isValidColumn(cols, column) {
-			return fmt.Errorf("invalid conflict constraint column: %s", column)
-		}
-	}
-
-	for _, column := range cmd.OnConflictConfig.Update {
-		if !e.isValidColumn(cols, column) {
-			return fmt.Errorf("invalid conflict update column: %s", column)
-		}
-	}
-
-	ignore := cmd.OnConflictConfig.Ignore
-	if ignore != "" && strings.ToLower(ignore) != "true" {
-		if !e.isValidColumn(cols, ignore) {
-			return fmt.Errorf("invalid conflict ignore column: %s", ignore)
-		}
-	}
-
-	return nil
-}
-
-func (e *executor) isValidColumn(cols map[string]string, column string) bool {
-	return e.isValidColumnWithVisited(cols, column, make(map[string]bool))
-}
-
-func (e *executor) isValidColumnWithVisited(cols map[string]string, column string, visited map[string]bool) bool {
-
-	_, ok := cols[column]
-	if ok {
-		// This matches a base column -> valid
-		return true
-	}
-
-	if visited[column] {
-		// This means we're in a circular reference -> not valid
-		return false
-	}
-
-	visited[column] = true
-
-	// Check against valid column patterns
-	for _, pattern := range e.ColumnPatterns {
-		matches := pattern.FindStringSubmatch(column)
-
-		if len(matches) == 1 {
-			// match with no capture groups
-			return true
-		}
-
-		if len(matches) > 1 {
-			// Check that each capture group is a valid column
-			for _, match := range matches[1:] {
-				if match != "" && e.isValidColumnWithVisited(cols, match, visited) {
-					return true
-				}
-			}
-		}
-	}
-
-	// Check if the column is being aliased
-	if matches := aliasRegex.FindStringSubmatch(column); len(matches) == 2 {
-		baseColumn := strings.TrimSpace(matches[1])
-		return e.isValidColumnWithVisited(cols, baseColumn, visited)
-	}
-
-	return false
-
-}
-
-func (e *executor) isValidOrderConfig(cols map[string]string, column string) bool {
-
-	parts := strings.Fields(column)
-
-	if len(parts) == 0 {
-		return false
-	}
-
-	valid := e.isValidColumn(cols, parts[0])
-
-	if len(parts) == 1 {
-		return valid
-	}
-
-	if len(parts) == 2 {
-		direction := strings.ToUpper(parts[1])
-		return valid && (direction == "ASC" || direction == "DESC")
-	}
-
-	return false
 }
 
 func (e *executor) query(ctx context.Context, tx Tx, cmd ex.Command, cols map[string]string, data any) error {
