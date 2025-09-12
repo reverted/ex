@@ -37,15 +37,15 @@ var _ = Describe("Executor", func() {
 		mockTypeRows   *mocks.MockRows
 		mockResult     *mocks.MockResult
 
-		columnTypes []xsql.ColumnType
+		columnTypes     []xsql.ColumnType
+		columnPattern   string
+		resourcePattern string
 
 		ctx      context.Context
 		executor Executor
 	)
 
 	BeforeEach(func() {
-		logger := newLogger()
-
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockConnection = mocks.NewMockConnection(mockCtrl)
 		mockFormatter = mocks.NewMockFormatter(mockCtrl)
@@ -70,19 +70,163 @@ var _ = Describe("Executor", func() {
 
 		ctx = context.Background()
 
+		resourcePattern = `^\w+$`
+		columnPattern = `(?i)^RANDOM\(\)$`
+	})
+
+	JustBeforeEach(func() {
+		logger := newLogger()
+
 		executor = xsql.NewExecutor(logger,
 			xsql.WithConnection(mockConnection),
 			xsql.WithFormatter(mockFormatter),
 			xsql.WithScanner(mockScanner),
 			xsql.WithTracer(noopTracer{}),
 			xsql.WithTypeCacheDuration(0),
+			xsql.WithPermittedResourcePattern(resourcePattern),
+			xsql.WithPermittedColumnPattern(columnPattern),
 		)
-	})
 
-	JustBeforeEach(func() {
 		var retry bool
 		retry, err = executor.Execute(ctx, req, data)
 		Expect(retry).To(BeFalse())
+	})
+
+	Describe("COLUMNS", func() {
+		BeforeEach(func() {
+			mockTx.EXPECT().Rollback().Return(nil)
+			mockConnection.EXPECT().Begin().Return(mockTx, nil)
+			mockTx.EXPECT().QueryContext(ctx, "SELECT * FROM resources LIMIT 0").Return(mockTypeRows, nil)
+			mockTypeRows.EXPECT().ColumnTypes().Return(columnTypes, nil)
+			mockTypeRows.EXPECT().Close().Return(nil)
+		})
+
+		Context("when querying an invalid column", func() {
+			Context("when base column does not exist", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"invalid_column": "some-value"})
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when ordering by column that doesn't exist", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Order("invalid"))
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when querying a json column with invalid base path", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"invalid_base->>'key'": "some-value"})
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when querying a valid base with invalid json path", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"id->>>'key'": "some-value"})
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when querying a valid base with invalid json path", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"id-->>'key'": "some-value"})
+				})
+
+				It("errors", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+		})
+
+		Context("when querying a valid column", func() {
+			BeforeEach(func() {
+				mockFormatter.EXPECT().Format(gomock.Any(), gomock.Any()).Return(ex.Statement{
+					Stmt: "some-stmt",
+					Args: []any{"some-arg"},
+				}, nil)
+
+				mockRows.EXPECT().Close().Return(nil)
+				mockTx.EXPECT().QueryContext(ctx, "some-stmt", "some-arg").Return(mockRows, nil)
+				mockScanner.EXPECT().Scan(mockRows, data).Return(nil)
+				mockTx.EXPECT().Commit().Return(nil)
+			})
+
+			Context("when querying a base column", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"id": "some-value"})
+				})
+
+				It("succeeds", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when querying a json path on base column with json segment", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"id->'key'": "some-value"})
+				})
+
+				It("succeeds", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when querying a json path on base column with nested json segment", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"id->data->'key'": "some-value"})
+				})
+
+				It("succeeds", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when querying a json path on base column with text segment", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"id->>'key'": "some-value"})
+				})
+
+				It("succeeds", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when querying a json path on base column with nested text segment", func() {
+				BeforeEach(func() {
+					req = ex.Query("resources", ex.Where{"id->data->>'key'": "some-value"})
+				})
+
+				It("succeeds", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when querying a permitted column", func() {
+				BeforeEach(func() {
+					columnPattern = `permitted_column`
+					req = ex.Query("resources", ex.Where{"permitted_column": "some-value"})
+				})
+
+				It("succeeds", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+		})
 	})
 
 	Describe("QUERY", func() {

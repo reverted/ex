@@ -20,9 +20,13 @@ import (
 var (
 	jsonPathParts = []string{
 		`^`,
-		`(\w+)`,                       // Base column (required)
-		`(?:->(?:'\w+'|\w+|"\w+"))*`,  // Zero or more standard segments
+		`(\w+)`, // Base column (required)
+		`(?:`,
+		`(?:->(?:'\w+'|\w+|"\w+"))+`,  // One or more standard segments
 		`(?:->>(?:'\w+'|\w+|"\w+"))?`, // Optional final text segment
+		`|`,
+		`->>(?:'\w+'|\w+|"\w+")`, // OR one final text segment
+		`)`,
 		`$`,
 	}
 
@@ -315,11 +319,23 @@ func (e *executor) validate(cmd ex.Command, cols map[string]string) error {
 }
 
 func (e *executor) isValidColumn(cols map[string]string, column string) bool {
+	return e.isValidColumnWithVisited(cols, column, make(map[string]bool))
+}
+
+func (e *executor) isValidColumnWithVisited(cols map[string]string, column string, visited map[string]bool) bool {
 
 	_, ok := cols[column]
 	if ok {
+		// This matches a base column -> valid
 		return true
 	}
+
+	if visited[column] {
+		// This means we're in a circular reference -> not valid
+		return false
+	}
+
+	visited[column] = true
 
 	// Check against valid column patterns
 	for _, pattern := range e.ColumnPatterns {
@@ -333,7 +349,7 @@ func (e *executor) isValidColumn(cols map[string]string, column string) bool {
 		if len(matches) > 1 {
 			// Check that each capture group is a valid column
 			for _, match := range matches[1:] {
-				if match != "" && e.isValidColumn(cols, match) {
+				if match != "" && e.isValidColumnWithVisited(cols, match, visited) {
 					return true
 				}
 			}
@@ -343,7 +359,7 @@ func (e *executor) isValidColumn(cols map[string]string, column string) bool {
 	// Check if the column is being aliased
 	if matches := aliasRegex.FindStringSubmatch(column); len(matches) == 2 {
 		baseColumn := strings.TrimSpace(matches[1])
-		return e.isValidColumn(cols, baseColumn)
+		return e.isValidColumnWithVisited(cols, baseColumn, visited)
 	}
 
 	return false
