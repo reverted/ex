@@ -35,19 +35,19 @@ func WithPermittedResourcePattern(pattern string) validatorOpt {
 	}
 }
 
-func WithColumnPatternAlias() validatorOpt {
+func WithPermittedColumnPatternAlias() validatorOpt {
 	return func(v *validator) {
 		v.ColumnPatterns = append(v.ColumnPatterns, aliasRegex)
 	}
 }
 
-func WithColumnPatternJsonPath() validatorOpt {
+func WithPermittedColumnPatternJsonPath() validatorOpt {
 	return func(v *validator) {
 		v.ColumnPatterns = append(v.ColumnPatterns, jsonPathRegexp)
 	}
 }
 
-func WithColumnPatternRandom() validatorOpt {
+func WithPermittedColumnPatternRandom() validatorOpt {
 	return func(v *validator) {
 		v.ColumnPatterns = append(v.ColumnPatterns, randomRegexp)
 	}

@@ -39,9 +39,9 @@ var _ = Describe("Validator", func() {
 
 		BeforeEach(func() {
 			validator = xsql.NewValidator(newLogger(),
-				xsql.WithColumnPatternAlias(),
-				xsql.WithColumnPatternJsonPath(),
-				xsql.WithColumnPatternRandom(),
+				xsql.WithPermittedColumnPatternAlias(),
+				xsql.WithPermittedColumnPatternJsonPath(),
+				xsql.WithPermittedColumnPatternRandom(),
 			)
 		})
 
@@ -192,7 +192,7 @@ var _ = Describe("Validator", func() {
 	Context("when querying a permitted column as alias", func() {
 		BeforeEach(func() {
 			validator = xsql.NewValidator(newLogger(),
-				xsql.WithColumnPatternAlias(),
+				xsql.WithPermittedColumnPatternAlias(),
 				xsql.WithPermittedColumnPattern(`^permitted_column$`),
 			)
 			req = ex.Query("resources", ex.Where{"permitted_column as permitted": "some-value"})
@@ -219,8 +219,8 @@ var _ = Describe("Validator", func() {
 	Context("when querying a permitted column as json path and alias", func() {
 		BeforeEach(func() {
 			validator = xsql.NewValidator(newLogger(),
-				xsql.WithColumnPatternAlias(),
-				xsql.WithColumnPatternJsonPath(),
+				xsql.WithPermittedColumnPatternAlias(),
+				xsql.WithPermittedColumnPatternJsonPath(),
 				xsql.WithPermittedColumnPattern(`^permitted_column$`),
 			)
 			req = ex.Query("resources", ex.Where{"permitted_column->>'blah' as permitted": "some-value"})
@@ -234,7 +234,7 @@ var _ = Describe("Validator", func() {
 	Context("when querying a permitted column as json path and alias but json path is not enabled", func() {
 		BeforeEach(func() {
 			validator = xsql.NewValidator(newLogger(),
-				xsql.WithColumnPatternAlias(),
+				xsql.WithPermittedColumnPatternAlias(),
 				xsql.WithPermittedColumnPattern(`^permitted_column$`),
 			)
 			req = ex.Query("resources", ex.Where{"permitted_column->>'blah' as permitted": "some-value"})
