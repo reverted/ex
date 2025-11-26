@@ -304,9 +304,9 @@ func (f *formatter) FormatWhereArg(index int, k string, v any) (string, []any) {
 	case ex.LtEqArg:
 		return fmt.Sprintf("%s <= $%d", k, index), []any{value.Arg}
 	case ex.LikeArg:
-		return fmt.Sprintf("%s LIKE $%d", k, index), []any{"%" + value.Arg + "%"}
+		return fmt.Sprintf("%s LIKE $%d", k, index), []any{value.Arg}
 	case ex.NotLikeArg:
-		return fmt.Sprintf("%s NOT LIKE $%d", k, index), []any{"%" + value.Arg + "%"}
+		return fmt.Sprintf("%s NOT LIKE $%d", k, index), []any{value.Arg}
 	case ex.IsArg:
 		return fmt.Sprintf("%s IS %v", k, f.formatIs(value.Arg)), nil
 	case ex.IsNotArg:
