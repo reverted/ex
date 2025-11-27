@@ -402,7 +402,7 @@ var _ = Describe("Server", func() {
 
 				Context("with 'like' query params", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = "name:like=2"
+						request.URL.RawQuery = "name:like=%2"
 					})
 
 					It("returns queried results", func() {
@@ -414,7 +414,7 @@ var _ = Describe("Server", func() {
 
 				Context("with 'not_like' query params", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = "name:not_like=2"
+						request.URL.RawQuery = "name:not_like=%2"
 					})
 
 					It("returns queried results", func() {
@@ -714,7 +714,7 @@ var _ = Describe("Server", func() {
 
 				Context("with 'like' query params", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = "name:like=2"
+						request.URL.RawQuery = "name:like=%2"
 					})
 
 					It("returns deleted results", func() {
@@ -733,7 +733,7 @@ var _ = Describe("Server", func() {
 
 				Context("with 'not_like' query params", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = "name:not_like=2"
+						request.URL.RawQuery = "name:not_like=%2"
 					})
 
 					It("returns deleted results", func() {
@@ -1053,7 +1053,7 @@ var _ = Describe("Server", func() {
 
 				Context("with 'like' query params", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = "name:like=2"
+						request.URL.RawQuery = "name:like=%2"
 					})
 
 					It("returns modified results", func() {
@@ -1073,7 +1073,7 @@ var _ = Describe("Server", func() {
 
 				Context("with 'not_like' query params", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = "name:not_like=2"
+						request.URL.RawQuery = "name:not_like=%2"
 					})
 
 					It("returns modified results", func() {

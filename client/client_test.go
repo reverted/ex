@@ -289,7 +289,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"name": ex.Like("2")})
+							req = ex.Query("resources", ex.Where{"name": ex.Like("%2")})
 						})
 
 						It("returns queried results", func() {
@@ -301,7 +301,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Query("resources", ex.Where{"name": ex.NotLike("2")})
+							req = ex.Query("resources", ex.Where{"name": ex.NotLike("%2")})
 						})
 
 						It("returns queried results", func() {
@@ -602,7 +602,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"name": ex.Like("2")})
+							req = ex.Delete("resources", ex.Where{"name": ex.Like("%2")})
 						})
 
 						It("returns deleted results", func() {
@@ -621,7 +621,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Delete("resources", ex.Where{"name": ex.NotLike("2")})
+							req = ex.Delete("resources", ex.Where{"name": ex.NotLike("%2")})
 						})
 
 						It("returns deleted results", func() {
@@ -942,7 +942,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Like("2")})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.Like("%2")})
 						})
 
 						It("returns modified results", func() {
@@ -962,7 +962,7 @@ var _ = Describe("Client", func() {
 
 					Context("with 'not_like' where clause", func() {
 						BeforeEach(func() {
-							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.NotLike("2")})
+							req = ex.Update("resources", ex.Values{"name": "new-resource"}, ex.Where{"id": ex.NotLike("%2")})
 						})
 
 						It("returns modified results", func() {
