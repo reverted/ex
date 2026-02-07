@@ -114,7 +114,7 @@ func (f *formatter) formatQueryWithPartition(cmd ex.Command, types map[string]st
 		whereClause,
 	)
 
-	stmt := fmt.Sprintf("SELECT %s, rn FROM (%s) AS ranked", columns, subquery)
+	stmt := fmt.Sprintf("SELECT * FROM (%s) AS ranked", subquery)
 
 	if cmd.LimitConfig > 0 {
 		stmt += " WHERE rn <= ?"

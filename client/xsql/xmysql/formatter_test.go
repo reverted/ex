@@ -120,7 +120,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with window function", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked ORDER BY created_at"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked ORDER BY created_at"))
 			})
 		})
 
@@ -130,7 +130,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with window function and row filter", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= ? ORDER BY created_at"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= ? ORDER BY created_at"))
 				Expect(stmt.Args).To(ConsistOf(10))
 			})
 		})
@@ -141,7 +141,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with window function, where clause and row filter", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources WHERE status = ?) AS ranked WHERE rn <= ? ORDER BY created_at"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources WHERE status = ?) AS ranked WHERE rn <= ? ORDER BY created_at"))
 				Expect(stmt.Args).To(Equal([]any{"active", 5}))
 			})
 		})
@@ -152,7 +152,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with json path in partition clause", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY data->>'user_id' ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= ? ORDER BY created_at"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY data->>'user_id' ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= ? ORDER BY created_at"))
 				Expect(stmt.Args).To(ConsistOf(10))
 			})
 		})
@@ -163,7 +163,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with nested json path in partition clause", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY metadata->data->>'category' ORDER BY id) as rn FROM resources) AS ranked ORDER BY id"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY metadata->data->>'category' ORDER BY id) as rn FROM resources) AS ranked ORDER BY id"))
 			})
 		})
 
@@ -173,7 +173,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with multiple partition fields", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY status, data->>'user_id' ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= ? ORDER BY created_at"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY status, data->>'user_id' ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= ? ORDER BY created_at"))
 				Expect(stmt.Args).To(ConsistOf(5))
 			})
 		})
@@ -184,7 +184,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with selected columns and window function", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT id, name, user_id, rn FROM (SELECT id, name, user_id, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked ORDER BY created_at"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT id, name, user_id, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked ORDER BY created_at"))
 			})
 		})
 
@@ -194,7 +194,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with selected columns, window function and row filter", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT id, name, status, rn FROM (SELECT id, name, status, ROW_NUMBER() OVER (PARTITION BY status ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= ? ORDER BY created_at"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT id, name, status, ROW_NUMBER() OVER (PARTITION BY status ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= ? ORDER BY created_at"))
 				Expect(stmt.Args).To(ConsistOf(3))
 			})
 		})
@@ -205,7 +205,7 @@ var _ = Describe("Formatter", func() {
 			})
 
 			It("formats the command with all features combined", func() {
-				Expect(stmt.Stmt).To(Equal("SELECT id, name, user_id, created_at, rn FROM (SELECT id, name, user_id, created_at, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources WHERE active = ?) AS ranked WHERE rn <= ? ORDER BY created_at"))
+				Expect(stmt.Stmt).To(Equal("SELECT * FROM (SELECT id, name, user_id, created_at, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources WHERE active = ?) AS ranked WHERE rn <= ? ORDER BY created_at"))
 				Expect(stmt.Args).To(Equal([]any{true, 5}))
 			})
 		})
