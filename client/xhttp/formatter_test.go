@@ -135,6 +135,30 @@ var _ = Describe("Formatter", func() {
 				Expect(res.Header.Get("X-Offset")).To(Equal("10"))
 			})
 		})
+
+		Context("when the request has partition by", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("user_id"))
+			})
+
+			It("formats the request", func() {
+				Expect(res.Method).To(Equal("GET"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Partition-By")).To(Equal("user_id"))
+			})
+		})
+
+		Context("when the request has multiple partition fields", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("user_id", "category"))
+			})
+
+			It("formats the request", func() {
+				Expect(res.Method).To(Equal("GET"))
+				Expect(res.URL.String()).To(Equal("http://some.url/resources"))
+				Expect(res.Header.Get("X-Partition-By")).To(Equal("user_id,category"))
+			})
+		})
 	})
 
 	Describe("DELETE", func() {

@@ -112,6 +112,11 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 		return ex.Command{}, err
 	}
 
+	partition, err := p.ParsePartition(r)
+	if err != nil {
+		return ex.Command{}, err
+	}
+
 	conflict, err := p.ParseConflict(r)
 	if err != nil {
 		return ex.Command{}, err
@@ -119,7 +124,16 @@ func (p *parser) ParseCommand(r *http.Request) (ex.Request, error) {
 
 	switch r.Method {
 	case "GET":
-		return ex.Query(resource, where, ex.Columns(columns...), ex.GroupBy(groupBy...), ex.OrderBy(order...), ex.Limit(limit), ex.Offset(offset)), nil
+		return ex.Query(
+			resource,
+			where,
+			ex.Columns(columns...),
+			ex.PartitionBy(partition...),
+			ex.GroupBy(groupBy...),
+			ex.OrderBy(order...),
+			ex.Limit(limit),
+			ex.Offset(offset),
+		), nil
 
 	case "DELETE":
 		return ex.Delete(resource, where, ex.OrderBy(order...), ex.Limit(limit)), nil
@@ -216,6 +230,14 @@ func (p *parser) ParseOffset(r *http.Request) (int, error) {
 		return offset, err
 	} else {
 		return 0, nil
+	}
+}
+
+func (p *parser) ParsePartition(r *http.Request) ([]string, error) {
+	if param := r.Header.Get("X-Partition-By"); len(param) > 0 {
+		return strings.Split(param, ","), nil
+	} else {
+		return nil, nil
 	}
 }
 

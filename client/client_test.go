@@ -409,6 +409,92 @@ var _ = Describe("Client", func() {
 							Expect(err).To(HaveOccurred())
 						})
 					})
+
+					Context("with partition by clause", func() {
+						var itemsWithRn []resourceWithRn
+
+						BeforeEach(func() {
+							insertResources("resource-1", "resource-1", "resource-2")
+							req = ex.Query("resources", ex.PartitionBy("name"), ex.Order("id"))
+						})
+
+						JustBeforeEach(func() {
+							err = sqlClient.Exec(req, &itemsWithRn)
+						})
+
+						It("succeeds", func() {
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("returns all 6 results with correct rn values per partition", func() {
+							Expect(itemsWithRn).To(ConsistOf(
+								newResourceWithRn(1, "resource-1", 1),
+								newResourceWithRn(2, "resource-2", 1),
+								newResourceWithRn(3, "resource-3", 1),
+								newResourceWithRn(4, "resource-1", 2),
+								newResourceWithRn(5, "resource-1", 3),
+								newResourceWithRn(6, "resource-2", 2),
+							))
+						})
+					})
+
+					Context("with partition by and limit", func() {
+						BeforeEach(func() {
+							insertResources("resource-1", "resource-2", "resource-1")
+							req = ex.Query("resources", ex.PartitionBy("name"), ex.Order("id"), ex.Limit(1))
+						})
+
+						It("succeeds", func() {
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("returns only first row from each partition (top 1 per name)", func() {
+							Expect(items).To(ConsistOf(
+								newResource(1, "resource-1"),
+								newResource(2, "resource-2"),
+								newResource(3, "resource-3"),
+							))
+						})
+					})
+
+					Context("with partition by, where, and limit", func() {
+						BeforeEach(func() {
+							insertResources("resource-2", "resource-3", "resource-2")
+							req = ex.Query("resources", ex.Where{"id": ex.Gt(1)}, ex.PartitionBy("name"), ex.Order("id"), ex.Limit(1))
+						})
+
+						It("succeeds", func() {
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("filters by WHERE first, then returns top 1 per partition", func() {
+							Expect(items).To(ConsistOf(
+								newResource(2, "resource-2"),
+								newResource(3, "resource-3"),
+							))
+						})
+					})
+
+					Context("with partition by multiple duplicate rows", func() {
+						BeforeEach(func() {
+							insertResources("resource-1", "resource-1", "resource-1", "resource-2", "resource-2")
+							req = ex.Query("resources", ex.PartitionBy("name"), ex.Order("id"), ex.Limit(2))
+						})
+
+						It("succeeds", func() {
+							Expect(err).NotTo(HaveOccurred())
+						})
+
+						It("returns top 2 from each partition, proving limit is per-partition not global", func() {
+							Expect(items).To(ConsistOf(
+								newResource(1, "resource-1"),
+								newResource(4, "resource-1"),
+								newResource(2, "resource-2"),
+								newResource(7, "resource-2"),
+								newResource(3, "resource-3"),
+							))
+						})
+					})
 				})
 			})
 		})

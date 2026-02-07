@@ -41,6 +41,7 @@ type Command struct {
 	Where            Where            `json:"where,omitempty"`
 	Values           Values           `json:"values,omitempty"`
 	ColumnConfig     ColumnConfig     `json:"columns,omitempty"`
+	PartitionConfig  PartitionConfig  `json:"partition,omitempty"`
 	GroupConfig      GroupConfig      `json:"group,omitempty"`
 	OrderConfig      OrderConfig      `json:"order,omitempty"`
 	LimitConfig      LimitConfig      `json:"limit,omitempty"`

@@ -40,6 +40,15 @@ func (f *formatter) Format(cmd ex.Command, types map[string]string) (ex.Statemen
 
 func (f *formatter) FormatQuery(cmd ex.Command, types map[string]string) ex.Statement {
 
+	if len(cmd.PartitionConfig) > 0 {
+		return f.formatQueryWithPartition(cmd, types)
+	} else {
+		return f.formatQuery(cmd, types)
+	}
+}
+
+func (f *formatter) formatQuery(cmd ex.Command, types map[string]string) ex.Statement {
+
 	var stmt string
 	var args []any
 
@@ -68,6 +77,53 @@ func (f *formatter) FormatQuery(cmd ex.Command, types map[string]string) ex.Stat
 
 	if clause := f.FormatOffset(int(cmd.OffsetConfig)); clause != "" {
 		stmt += " OFFSET " + clause
+	}
+
+	return ex.Exec(stmt, args...)
+}
+
+func (f *formatter) formatQueryWithPartition(cmd ex.Command, types map[string]string) ex.Statement {
+	var args []any
+
+	partitionFields := strings.Join(cmd.PartitionConfig, ", ")
+
+	orderClause := "id"
+	if len(cmd.OrderConfig) > 0 {
+		orderClause = strings.Join(cmd.OrderConfig, ", ")
+	}
+
+	columns := "*"
+	if len(cmd.ColumnConfig) > 0 {
+		columns = strings.Join(cmd.ColumnConfig, ", ")
+	}
+
+	whereClause := ""
+	if len(cmd.Where) > 0 {
+		clause, whereArgs := f.FormatWhere(cmd.Where, 1)
+		if clause != "" {
+			whereClause = " WHERE " + clause
+			args = append(args, whereArgs...)
+		}
+	}
+
+	subquery := fmt.Sprintf(
+		"SELECT %s, ROW_NUMBER() OVER (PARTITION BY %s ORDER BY %s) as rn FROM %s%s",
+		columns,
+		partitionFields,
+		orderClause,
+		cmd.Resource,
+		whereClause,
+	)
+
+	stmt := fmt.Sprintf("SELECT %s, rn FROM (%s) AS ranked", columns, subquery)
+
+	if cmd.LimitConfig > 0 {
+		stmt += fmt.Sprintf(" WHERE rn <= $%d", len(args)+1)
+		args = append(args, int(cmd.LimitConfig))
+	}
+
+	if len(cmd.OrderConfig) > 0 {
+		stmt += " ORDER BY " + strings.Join(cmd.OrderConfig, ", ")
 	}
 
 	return ex.Exec(stmt, args...)

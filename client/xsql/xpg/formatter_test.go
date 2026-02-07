@@ -113,6 +113,102 @@ var _ = Describe("Formatter", func() {
 				Expect(stmt.Stmt).To(Equal("SELECT * FROM resources OFFSET 10"))
 			})
 		})
+
+		Context("when the command has partition by", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.PartitionBy("user_id"), ex.Order("created_at"))
+			})
+
+			It("formats the command with window function", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked ORDER BY created_at"))
+			})
+		})
+
+		Context("when the command has partition by with limit", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.PartitionBy("user_id"), ex.Order("created_at"), ex.Limit(10))
+			})
+
+			It("formats the command with window function and row filter", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= $1 ORDER BY created_at"))
+				Expect(stmt.Args).To(ConsistOf(10))
+			})
+		})
+
+		Context("when the command has partition by with where and limit", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.Where{"status": "active"}, ex.PartitionBy("user_id"), ex.Order("created_at"), ex.Limit(5))
+			})
+
+			It("formats the command with window function, where clause and row filter", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources WHERE status = $1) AS ranked WHERE rn <= $2 ORDER BY created_at"))
+				Expect(stmt.Args).To(Equal([]any{"active", 5}))
+			})
+		})
+
+		Context("when the command has partition by json path", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.PartitionBy("data->>'user_id'"), ex.Order("created_at"), ex.Limit(10))
+			})
+
+			It("formats the command with json path in partition clause", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY data->>'user_id' ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= $1 ORDER BY created_at"))
+				Expect(stmt.Args).To(ConsistOf(10))
+			})
+		})
+
+		Context("when the command has partition by nested json path", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.PartitionBy("metadata->data->>'category'"), ex.Order("id"))
+			})
+
+			It("formats the command with nested json path in partition clause", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY metadata->data->>'category' ORDER BY id) as rn FROM resources) AS ranked ORDER BY id"))
+			})
+		})
+
+		Context("when the command has partition by multiple fields including json paths", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.PartitionBy("status", "data->>'user_id'"), ex.Order("created_at"), ex.Limit(5))
+			})
+
+			It("formats the command with multiple partition fields", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT *, rn FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY status, data->>'user_id' ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= $1 ORDER BY created_at"))
+				Expect(stmt.Args).To(ConsistOf(5))
+			})
+		})
+
+		Context("when the command has partition by with custom column select", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.Columns("id", "name", "user_id"), ex.PartitionBy("user_id"), ex.Order("created_at"))
+			})
+
+			It("formats the command with selected columns and window function", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT id, name, user_id, rn FROM (SELECT id, name, user_id, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources) AS ranked ORDER BY created_at"))
+			})
+		})
+
+		Context("when the command has partition by with custom column select and limit", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.Columns("id", "name", "status"), ex.PartitionBy("status"), ex.Order("created_at"), ex.Limit(3))
+			})
+
+			It("formats the command with selected columns, window function and row filter", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT id, name, status, rn FROM (SELECT id, name, status, ROW_NUMBER() OVER (PARTITION BY status ORDER BY created_at) as rn FROM resources) AS ranked WHERE rn <= $1 ORDER BY created_at"))
+				Expect(stmt.Args).To(ConsistOf(3))
+			})
+		})
+
+		Context("when the command has partition by with custom column select, where and limit", func() {
+			BeforeEach(func() {
+				cmd = ex.Query("resources", ex.Columns("id", "name", "user_id", "created_at"), ex.Where{"active": true}, ex.PartitionBy("user_id"), ex.Order("created_at"), ex.Limit(5))
+			})
+
+			It("formats the command with all features combined", func() {
+				Expect(stmt.Stmt).To(Equal("SELECT id, name, user_id, created_at, rn FROM (SELECT id, name, user_id, created_at, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) as rn FROM resources WHERE active = $1) AS ranked WHERE rn <= $2 ORDER BY created_at"))
+				Expect(stmt.Args).To(Equal([]any{true, 5}))
+			})
+		})
 	})
 
 	Describe("DELETE", func() {

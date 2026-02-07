@@ -65,6 +65,7 @@ func cmd(action, resource string, opts ...Opt) Command {
 		LimitConfig:      LimitConfig(0),
 		OffsetConfig:     OffsetConfig(0),
 		OnConflictConfig: OnConflictConfig{},
+		PartitionConfig:  nil,
 	}
 
 	for _, opt := range opts {
@@ -178,6 +179,20 @@ func OnConflictIgnore(ignore string) Opt {
 
 func OnConflictError(err string) Opt {
 	return OnConflictConfig{Error: err}
+}
+
+func Partition(fields ...string) Opt {
+	return PartitionConfig(fields)
+}
+
+func PartitionBy(fields ...string) Opt {
+	return PartitionConfig(fields)
+}
+
+type PartitionConfig []string
+
+func (c PartitionConfig) opt(cmd *Command) {
+	cmd.PartitionConfig = c
 }
 
 func Eq(arg any) EqArg {

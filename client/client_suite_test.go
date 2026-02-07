@@ -159,6 +159,24 @@ func (r *resource) Scan(rows *sql.Rows, cols ...string) error {
 	return rows.Scan(&r.Id, &r.Name)
 }
 
+type resourceWithRn struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+	Rn   uint64 `json:"rn"`
+}
+
+func (r *resourceWithRn) Scan(rows *sql.Rows, cols ...string) error {
+	return rows.Scan(&r.Id, &r.Name, &r.Rn)
+}
+
+func newResourceWithRn(id int, name string, rn uint64) resourceWithRn {
+	return resourceWithRn{
+		Id:   id,
+		Name: name,
+		Rn:   rn,
+	}
+}
+
 func createResourcesTable() {
 	err := sqlClient.Exec(ex.Exec(createResources))
 	Expect(err).NotTo(HaveOccurred())

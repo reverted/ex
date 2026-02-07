@@ -101,6 +101,12 @@ func (v *validator) Validate(cmd ex.Command, cols map[string]string) error {
 		}
 	}
 
+	for _, column := range cmd.PartitionConfig {
+		if !v.isValidColumn(cols, column) {
+			return fmt.Errorf("invalid partition column: %s", column)
+		}
+	}
+
 	for column := range cmd.Where {
 		if !v.isValidColumn(cols, column) {
 			return fmt.Errorf("invalid where column: %s", column)

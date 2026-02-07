@@ -75,6 +75,96 @@ var _ = Describe("Validator", func() {
 			})
 		})
 
+		Context("when partitioning by column that doesn't exist", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("invalid"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when partitioning by valid column", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("id"))
+			})
+
+			It("succeeds", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when partitioning by multiple valid columns", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("id", "name"))
+			})
+
+			It("succeeds", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when partitioning by mix of valid and invalid columns", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("id", "invalid"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when partitioning by json path on valid base column", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("id->>'key'"))
+			})
+
+			It("succeeds", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when partitioning by nested json path", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("id->data->>'user_id'"))
+			})
+
+			It("succeeds", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when partitioning by json path on invalid base column", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("invalid->>'key'"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when partitioning by multiple fields including json paths", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("id", "name->>'category'"))
+			})
+
+			It("succeeds", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when partitioning by json path with invalid syntax", func() {
+			BeforeEach(func() {
+				req = ex.Query("resources", ex.PartitionBy("id->>>'key'"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
 		Context("when querying a json column with invalid base path", func() {
 			BeforeEach(func() {
 				req = ex.Query("resources", ex.Where{"invalid_base->>'key'": "some-value"})

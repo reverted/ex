@@ -148,6 +148,10 @@ func (f *formatter) FormatHeaders(cmd ex.Command) (map[string]string, error) {
 		res["X-Offset"] = fmt.Sprintf("%v", cmd.OffsetConfig)
 	}
 
+	if len(cmd.PartitionConfig) > 0 {
+		res["X-Partition-By"] = strings.Join(cmd.PartitionConfig, ",")
+	}
+
 	if c := cmd.OnConflictConfig.Constraint; len(c) > 0 {
 		res["X-On-Conflict-Constraint"] = strings.Join(c, ",")
 	}

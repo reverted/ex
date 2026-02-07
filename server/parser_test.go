@@ -131,6 +131,26 @@ var _ = Describe("Parser", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
+
+		Context("when the request has partition by", func() {
+			BeforeEach(func() {
+				req.Header.Add("X-Partition-By", "user_id")
+			})
+
+			It("parses the request", func() {
+				Expect(res).To(Equal(ex.Query("resources", ex.PartitionBy("user_id"))))
+			})
+		})
+
+		Context("when the request has multiple partition fields", func() {
+			BeforeEach(func() {
+				req.Header.Add("X-Partition-By", "user_id,category")
+			})
+
+			It("parses the request", func() {
+				Expect(res).To(Equal(ex.Query("resources", ex.PartitionBy("user_id", "category"))))
+			})
+		})
 	})
 
 	Describe("DELETE", func() {
