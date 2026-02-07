@@ -25,6 +25,7 @@ var (
 	resourceRegexp = regexp.MustCompile(`^\w+$`)
 	aliasRegex     = regexp.MustCompile(`(?i)^(.*)\s+AS\s+(?:\w+)$`)
 	randomRegexp   = regexp.MustCompile(`(?i)^RANDOM\(\)$`)
+	literalRegexp  = regexp.MustCompile(`(?i)^(NULL|TRUE|FALSE|NOW\(\))$`)
 )
 
 type validatorOpt func(*validator)
@@ -67,12 +68,19 @@ func WithPermittedColumnPatterns(pattern ...string) validatorOpt {
 	}
 }
 
+func WithPermittedLiteralPattern(pattern string) validatorOpt {
+	return func(v *validator) {
+		v.LiteralPattern = regexp.MustCompile(pattern)
+	}
+}
+
 func NewValidator(logger Logger, opts ...validatorOpt) *validator {
 
 	validator := &validator{
 		Logger:          logger,
 		ResourcePattern: resourceRegexp,
 		ColumnPatterns:  []*regexp.Regexp{},
+		LiteralPattern:  literalRegexp,
 	}
 
 	for _, opt := range opts {
@@ -87,6 +95,7 @@ type validator struct {
 
 	ResourcePattern *regexp.Regexp
 	ColumnPatterns  []*regexp.Regexp
+	LiteralPattern  *regexp.Regexp
 }
 
 func (v *validator) Validate(cmd ex.Command, cols map[string]string) error {
@@ -107,15 +116,25 @@ func (v *validator) Validate(cmd ex.Command, cols map[string]string) error {
 		}
 	}
 
-	for column := range cmd.Where {
+	for column, value := range cmd.Where {
 		if !v.isValidColumn(cols, column) {
 			return fmt.Errorf("invalid where column: %s", column)
 		}
+		if literal, ok := value.(ex.LiteralArg); ok {
+			if !v.LiteralPattern.MatchString(literal.Arg) {
+				return fmt.Errorf("invalid literal value in where clause: %s", literal.Arg)
+			}
+		}
 	}
 
-	for column := range cmd.Values {
+	for column, value := range cmd.Values {
 		if !v.isValidColumn(cols, column) {
 			return fmt.Errorf("invalid value column: %s", column)
+		}
+		if literal, ok := value.(ex.LiteralArg); ok {
+			if !v.LiteralPattern.MatchString(literal.Arg) {
+				return fmt.Errorf("invalid literal value: %s", literal.Arg)
+			}
 		}
 	}
 

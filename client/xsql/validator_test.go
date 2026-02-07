@@ -334,4 +334,100 @@ var _ = Describe("Validator", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+
+	Context("when using literal with allowed value NULL", func() {
+		BeforeEach(func() {
+			validator = xsql.NewValidator(newLogger())
+			req = ex.Query("resources", ex.Where{"name": ex.Literal("NULL")})
+		})
+
+		It("succeeds", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("when using literal with allowed value TRUE", func() {
+		BeforeEach(func() {
+			validator = xsql.NewValidator(newLogger())
+			req = ex.Update("resources", ex.Values{"name": ex.Literal("TRUE")})
+		})
+
+		It("succeeds", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("when using literal with allowed value NOW()", func() {
+		BeforeEach(func() {
+			validator = xsql.NewValidator(newLogger())
+			req = ex.Update("resources", ex.Values{"name": ex.Literal("NOW()")})
+		})
+
+		It("succeeds", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("when using literal with SQL injection attempt in WHERE", func() {
+		BeforeEach(func() {
+			validator = xsql.NewValidator(newLogger())
+			req = ex.Query("resources", ex.Where{"id": ex.Literal("1 OR 1=1")})
+		})
+
+		It("blocks the injection", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid literal value"))
+		})
+	})
+
+	Context("when using literal with SQL injection attempt in VALUES", func() {
+		BeforeEach(func() {
+			validator = xsql.NewValidator(newLogger())
+			req = ex.Update("resources", ex.Values{"name": ex.Literal("'; DROP TABLE users--")})
+		})
+
+		It("blocks the injection", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid literal value"))
+		})
+	})
+
+	Context("when using literal with dangerous SQL keywords", func() {
+		BeforeEach(func() {
+			validator = xsql.NewValidator(newLogger())
+			req = ex.Query("resources", ex.Where{"name": ex.Literal("EXEC sp_executesql")})
+		})
+
+		It("blocks the dangerous value", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid literal value"))
+		})
+	})
+
+	Context("when using custom literal pattern to allow numbers", func() {
+		BeforeEach(func() {
+			validator = xsql.NewValidator(newLogger(),
+				xsql.WithPermittedLiteralPattern(`(?i)^(NULL|TRUE|FALSE|NOW\(\)|\d+)$`),
+			)
+			req = ex.Query("resources", ex.Where{"id": ex.Literal("42")})
+		})
+
+		It("allows the custom pattern", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("when using custom literal pattern but value doesn't match", func() {
+		BeforeEach(func() {
+			validator = xsql.NewValidator(newLogger(),
+				xsql.WithPermittedLiteralPattern(`(?i)^(NULL|TRUE|FALSE)$`),
+			)
+			req = ex.Query("resources", ex.Where{"name": ex.Literal("NOW()")})
+		})
+
+		It("blocks values not in custom pattern", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid literal value"))
+		})
+	})
 })
