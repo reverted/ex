@@ -95,19 +95,11 @@ func (c *client) execute(ctx context.Context, req ex.Request, data any) error {
 	for i, interval := range c.Backoff {
 		time.Sleep(time.Duration(interval) * time.Second)
 
-		c.Logger.Infof(">>> %+v", req)
-
 		span, spanCtx := c.Tracer.StartSpan(ctx, "exec", ex.SpanTag{Key: "attempt", Value: i})
 		defer span.Finish()
 
 		if retry, err = c.Executor.Execute(spanCtx, req, data); !retry {
 			break
-		}
-
-		if next := i + 1; next < len(c.Backoff) {
-			c.Logger.Infof(">>> %+v [failed] retry in %ds", req, c.Backoff[next])
-		} else {
-			c.Logger.Errorf(">>> %+v [failed] %v", req, err)
 		}
 	}
 
