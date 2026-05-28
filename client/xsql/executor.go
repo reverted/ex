@@ -239,8 +239,6 @@ func (e *executor) query(ctx context.Context, tx Tx, cmd ex.Command, cols map[st
 		return err
 	}
 
-	e.Logger.Infof(">>> %v", stmt)
-
 	span, spanCtx := e.Tracer.StartSpan(ctx, "query")
 	defer span.Finish()
 
@@ -261,8 +259,6 @@ func (e *executor) delete(ctx context.Context, tx Tx, cmd ex.Command, cols map[s
 		return err
 	}
 
-	e.Logger.Infof(">>> %v", stmt)
-
 	span, spanCtx := e.Tracer.StartSpan(ctx, "delete")
 	defer span.Finish()
 
@@ -282,8 +278,6 @@ func (e *executor) insert(ctx context.Context, tx Tx, cmd ex.Command, cols map[s
 	if err != nil {
 		return err
 	}
-
-	e.Logger.Infof(">>> %v", stmt)
 
 	span, spanCtx := e.Tracer.StartSpan(ctx, "insert")
 	defer span.Finish()
@@ -316,8 +310,6 @@ func (e *executor) update(ctx context.Context, tx Tx, cmd ex.Command, cols map[s
 	if err != nil {
 		return err
 	}
-
-	e.Logger.Infof(">>> %v", stmt)
 
 	span, spanCtx := e.Tracer.StartSpan(ctx, "update")
 	defer span.Finish()
